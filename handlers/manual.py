@@ -1,142 +1,291 @@
-from aiogram import Dispatcher, types
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import MessageHandler, filters, CallbackContext
 from utils import create_excel
+import os
+import logging
 
-def register_manual_handlers(dp: Dispatcher, user_data: dict):
-    @dp.message_handler(
-        lambda message: user_data.get(message.chat.id, {}).get('current_handler') == 'manual' 
-        and user_data[message.chat.id].get("step") is None 
-        and message.text.isdigit()
+# Настройка логирования
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+async def get_number_of_sheets(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка ввода количества листов."""
+    chat_id = update.message.chat_id
+    if user_data.get(chat_id, {}).get('current_handler') != 'manual':
+        await update.message.reply_text("Пожалуйста, начни с команды /start.")
+        return 1  # GET_SHEETS_NUM
+
+    if not update.message.text.isdigit():
+        await update.message.reply_text("Пожалуйста, введи число.\nСколько листов нужно создать?")
+        return 1  # GET_SHEETS_NUM
+
+    num_sheets = int(update.message.text)
+    if num_sheets < 1:
+        await update.message.reply_text("Количество листов должно быть больше 0.")
+        return 1  # GET_SHEETS_NUM
+
+    user_data[chat_id]["sheet_count"] = num_sheets
+    await update.message.reply_text(
+        "Введи названия листов через запятую (например, Скамейка,Карусель):",
+        reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True)
     )
-    async def get_number_of_sheets(message: types.Message):
-        num_sheets = int(message.text)
-        user_data[message.chat.id]["sheet_count"] = num_sheets
-        user_data[message.chat.id]["step"] = "sheet_names"
-        await message.answer("Введи названия листов через запятую:")
+    user_data[chat_id]["previous_state"] = 1  # GET_SHEETS_NUM
+    return 2  # GET_SHEET_NAMES
 
-    @dp.message_handler(
-        lambda message: user_data.get(message.chat.id, {}).get('current_handler') == 'manual' 
-        and user_data[message.chat.id].get("step") == "sheet_names" 
-        and "," in message.text
+async def get_sheet_names_and_quantities(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка названий листов."""
+    chat_id = update.message.chat_id
+    if "," not in update.message.text:
+        await update.message.reply_text("Пожалуйста, введи названия через запятую (например, Скамейка,Карусель).")
+        return 2  # GET_SHEET_NAMES
+
+    sheets = [sheet.strip() for sheet in update.message.text.split(",")]
+    if len(sheets) != user_data[chat_id]["sheet_count"]:
+        await update.message.reply_text(
+            f"Ты указал {user_data[chat_id]['sheet_count']} листов, но ввёл {len(sheets)} названий. "
+            "Попробуй снова."
+        )
+        return 2  # GET_SHEET_NAMES
+
+    user_data[chat_id]["sheets"] = sheets
+    user_data[chat_id]["quantities"] = {}
+    user_data[chat_id]["current_sheet_index"] = 0
+    await ask_maf_quantity(update, user_data)
+    user_data[chat_id]["previous_state"] = 2  # GET_SHEET_NAMES
+    return 3  # MAF_QUANTITY
+
+async def ask_maf_quantity(update: Update, user_data: dict) -> None:
+    """Запрос количества для следующего листа."""
+    chat_id = update.message.chat_id
+    sheets = user_data[chat_id]["sheets"]
+    current_index = user_data[chat_id]["current_sheet_index"]
+    next_sheet = sheets[current_index]
+    await update.message.reply_text(
+        f"Для листа '{next_sheet}' укажи количество:",
+        reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True)
     )
-    async def get_sheet_names_and_quantities(message: types.Message):
-        sheets = [sheet.strip() for sheet in message.text.split(",")]
-        user_data[message.chat.id]["sheets"] = sheets
-        user_data[message.chat.id]["step"] = "maf_quantity"
-        await ask_maf_quantity(message)
 
-    async def ask_maf_quantity(message):
-        sheets = user_data[message.chat.id]["sheets"]
-        if "quantities" not in user_data[message.chat.id]:
-            user_data[message.chat.id]["quantities"] = {}
+async def get_maf_quantity(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка количества для листа."""
+    chat_id = update.message.chat_id
+    if not update.message.text.isdigit():
+        await update.message.reply_text("Пожалуйста, введи число.")
+        await ask_maf_quantity(update, user_data)
+        return 3  # MAF_QUANTITY
 
-        if len(user_data[message.chat.id]["quantities"]) < len(sheets):
-            next_sheet = sheets[len(user_data[message.chat.id]["quantities"])]
-            await message.answer(f"{next_sheet} в каком количестве?")
+    maf_quantity = int(update.message.text)
+    sheets = user_data[chat_id]["sheets"]
+    current_index = user_data[chat_id]["current_sheet_index"]
+    current_maf = sheets[current_index]
+    user_data[chat_id]["quantities"][current_maf] = maf_quantity
+    user_data[chat_id]["current_sheet_index"] += 1
+
+    if user_data[chat_id]["current_sheet_index"] < len(sheets):
+        await ask_maf_quantity(update, user_data)
+        return 3  # MAF_QUANTITY
+    else:
+        user_data[chat_id]["current_sheet"] = sheets[0]
+        user_data[chat_id]["current_sheet_index"] = 0
+        await update.message.reply_text(
+            f"Теперь заполним данные для листа '{sheets[0]}'.\nВведи название изделия:",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True)
+        )
+        user_data[chat_id]["previous_state"] = 3  # MAF_QUANTITY
+        logger.debug(f"Переход к вводу изделий для листа {sheets[0]}")
+        return 4  # PRODUCT_NAME
+
+async def get_product_name(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка названия изделия."""
+    chat_id = update.message.chat_id
+    current_sheet = user_data[chat_id]["current_sheet"]
+    product_name = update.message.text
+
+    if current_sheet not in user_data[chat_id]["products"]:
+        user_data[chat_id]["products"][current_sheet] = []
+
+    user_data[chat_id]["products"][current_sheet].append({
+        "name": product_name,
+        "quantity": 0,
+        "unit": "",
+        "price_per_unit": 0
+    })
+    await update.message.reply_text(
+        f"Для изделия '{product_name}' укажи количество:",
+        reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True)
+    )
+    user_data[chat_id]["previous_state"] = 4  # PRODUCT_NAME
+    return 5  # QUANTITY
+
+async def get_product_quantity(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка количества изделия."""
+    chat_id = update.message.chat_id
+    if not update.message.text.isdigit():
+        await update.message.reply_text("Пожалуйста, введи число.")
+        return 5  # QUANTITY
+
+    quantity = int(update.message.text)
+    current_sheet = user_data[chat_id]["current_sheet"]
+    user_data[chat_id]["products"][current_sheet][-1]["quantity"] = quantity
+
+    keyboard = ReplyKeyboardMarkup(
+        [[KeyboardButton("м"), KeyboardButton("м²")], [KeyboardButton("м³"), KeyboardButton("шт")]],
+        resize_keyboard=True
+    )
+    await update.message.reply_text(
+        "Выбери единицу измерения (нажми на кнопку):",
+        reply_markup=keyboard
+    )
+    user_data[chat_id]["previous_state"] = 5  # QUANTITY
+    return 6  # UNIT
+
+async def get_product_unit(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка единицы измерения."""
+    chat_id = update.message.chat_id
+    unit = update.message.text
+    current_sheet = user_data[chat_id]["current_sheet"]
+    user_data[chat_id]["products"][current_sheet][-1]["unit"] = unit
+    await update.message.reply_text(
+        f"Для изделия '{user_data[chat_id]['products'][current_sheet][-1]['name']}' укажи цену за единицу:",
+        reply_markup=ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("/cancel")]], resize_keyboard=True)
+    )
+    user_data[chat_id]["previous_state"] = 6  # UNIT
+    return 7  # PRICE
+
+async def get_product_price(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка цены за единицу."""
+    chat_id = update.message.chat_id
+    text = update.message.text
+    if not text.replace('.', '', 1).isdigit():
+        await update.message.reply_text(
+            "Пожалуйста, введи число (можно с десятичной точкой, например, 100.50)."
+        )
+        return 7  # PRICE
+
+    price = float(text)
+    current_sheet = user_data[chat_id]["current_sheet"]
+    user_data[chat_id]["products"][current_sheet][-1]["price_per_unit"] = price
+    await update.message.reply_text(
+        f"Изделие сохранено! Что дальше?\n- Введи название следующего изделия.\n- Напиши 'далее', чтобы перейти к следующему листу.",
+        reply_markup=ReplyKeyboardMarkup(
+            [[KeyboardButton("далее"), KeyboardButton("Назад")], [KeyboardButton("/cancel")]],
+            resize_keyboard=True
+        )
+    )
+    user_data[chat_id]["previous_state"] = 7  # PRICE
+    return 8  # NEXT_PRODUCT
+
+async def process_next_product_or_sheet(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка следующего изделия или листа."""
+    chat_id = update.message.chat_id
+    text = update.message.text.lower()
+
+    if text == 'далее':
+        current_sheet = user_data[chat_id]["current_sheet"]
+        sheets = user_data[chat_id]["sheets"]
+        current_index = sheets.index(current_sheet)
+
+        if current_index + 1 < len(sheets):
+            next_sheet = sheets[current_index + 1]
+            user_data[chat_id]["current_sheet"] = next_sheet
+            await update.message.reply_text(
+                f"Переходим к листу '{next_sheet}'.\nВведи название изделия:",
+                reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True)
+            )
+            user_data[chat_id]["previous_state"] = 8  # NEXT_PRODUCT
+            return 4  # PRODUCT_NAME
         else:
-            user_data[message.chat.id]["current_sheet"] = sheets[0]
-            user_data[message.chat.id]["step"] = "product_name"
-            await message.answer(f"Начнем заполнять данные для листа: {sheets[0]}\nВведи название изделия:")
-
-    @dp.message_handler(
-        lambda message: user_data.get(message.chat.id, {}).get('current_handler') == 'manual' 
-        and user_data[message.chat.id].get("step") == "maf_quantity" 
-        and message.text.isdigit()
-    )
-    async def get_maf_quantity(message: types.Message):
-        sheets = user_data[message.chat.id]["sheets"]
-        maf_quantity = int(message.text)
-        current_maf = sheets[len(user_data[message.chat.id]["quantities"])]
-        user_data[message.chat.id]["quantities"][current_maf] = maf_quantity
-        await ask_maf_quantity(message)
-
-    @dp.message_handler(
-        lambda message: user_data.get(message.chat.id, {}).get('current_handler') == 'manual' 
-        and user_data[message.chat.id].get("step") == "product_name"
-    )
-    async def get_product_name(message: types.Message):
-        current_sheet = user_data[message.chat.id]["current_sheet"]
-        product_name = message.text
-        if current_sheet not in user_data[message.chat.id]["products"]:
-            user_data[message.chat.id]["products"][current_sheet] = []
-
-        user_data[message.chat.id]["products"][current_sheet].append({
+            keyboard = ReplyKeyboardMarkup(
+                [[KeyboardButton("Да"), KeyboardButton("Нет")]],
+                resize_keyboard=True
+            )
+            await update.message.reply_text(
+                "Закончить создание сметы и сформировать Excel-файл?",
+                reply_markup=keyboard
+            )
+            user_data[chat_id]["awaiting_confirmation"] = True
+            return 8  # NEXT_PRODUCT
+    elif user_data[chat_id].get("awaiting_confirmation"):
+        if text == "да":
+            try:
+                logger.debug(f"Попытка создать и отправить файл для chat_id={chat_id}")
+                await update.message.reply_text("Формирую Excel-файл...")
+                create_excel(chat_id, user_data)
+                file_name = os.path.join("smeta_files", f"smeta_{chat_id}.xlsx")
+                if os.path.exists(file_name):
+                    with open(file_name, "rb") as file:
+                        await update.message.reply_document(document=file)
+                    logger.info(f"Файл {file_name} успешно отправлен")
+                    os.remove(file_name)
+                else:
+                    logger.error(f"Файл {file_name} не найден после создания")
+                    await update.message.reply_text("Ошибка: не удалось создать Excel-файл.")
+                user_data[chat_id].clear()
+                await update.message.reply_text(
+                    "Смета создана! Начни заново с /start.",
+                    reply_markup=None
+                )
+                return -1  # ConversationHandler.END
+            except Exception as e:
+                logger.error(f"Ошибка при создании/отправке файла: {str(e)}")
+                await update.message.reply_text(f"Произошла ошибка: {str(e)}")
+                user_data[chat_id].clear()
+                return -1  # ConversationHandler.END
+        elif text == "нет":
+            user_data[chat_id]["awaiting_confirmation"] = False
+            await update.message.reply_text(
+                f"Продолжаем с листом '{user_data[chat_id]['current_sheet']}'.\nВведи название изделия:",
+                reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True)
+            )
+            return 4  # PRODUCT_NAME
+        else:
+            await update.message.reply_text(
+                "Пожалуйста, выбери 'Да' или 'Нет'.",
+                reply_markup=ReplyKeyboardMarkup(
+                    [[KeyboardButton("Да"), KeyboardButton("Нет")]],
+                    resize_keyboard=True
+                )
+            )
+            return 8  # NEXT_PRODUCT
+    else:
+        current_sheet = user_data[chat_id]["current_sheet"]
+        product_name = update.message.text
+        user_data[chat_id]["products"][current_sheet].append({
             "name": product_name,
             "quantity": 0,
             "unit": "",
             "price_per_unit": 0
         })
-        user_data[message.chat.id]["step"] = "quantity"
-        await message.answer("Введи количество:")
+        await update.message.reply_text(
+            f"Для изделия '{product_name}' укажи количество:",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True)
+        )
+        user_data[chat_id]["previous_state"] = 8  # NEXT_PRODUCT
+        return 5  # QUANTITY
 
-    @dp.message_handler(
-        lambda message: user_data.get(message.chat.id, {}).get('current_handler') == 'manual' 
-        and user_data[message.chat.id].get("step") == "quantity" 
-        and message.text.isdigit()
-    )
-    async def get_product_quantity(message: types.Message):
-        quantity = int(message.text)
-        current_sheet = user_data[message.chat.id]["current_sheet"]
-        user_data[message.chat.id]["products"][current_sheet][-1]["quantity"] = quantity
-        user_data[message.chat.id]["step"] = "unit"
-        
-        keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-        buttons = ["м", "м²", "м³", "шт"]
-        keyboard.add(*buttons)
-        
-        await message.answer("Введи единицы измерения (м, м², м³, шт):", reply_markup=keyboard)
+async def go_back(update: Update, context: CallbackContext, user_data: dict) -> int:
+    """Обработка кнопки 'Назад'."""
+    chat_id = update.message.chat_id
+    previous_state = user_data[chat_id].get("previous_state")
 
-    @dp.message_handler(
-        lambda message: user_data.get(message.chat.id, {}).get('current_handler') == 'manual' 
-        and user_data[message.chat.id].get("step") == "unit"
-    )
-    async def get_product_unit(message: types.Message):
-        unit = message.text
-        current_sheet = user_data[message.chat.id]["current_sheet"]
-        user_data[message.chat.id]["products"][current_sheet][-1]["unit"] = unit
-        user_data[message.chat.id]["step"] = "price"
-        await message.answer("Введи цену за единицу изделия:", reply_markup=types.ReplyKeyboardRemove())
-
-    @dp.message_handler(
-        lambda message: user_data.get(message.chat.id, {}).get('current_handler') == 'manual' 
-        and user_data[message.chat.id].get("step") == "price" 
-        and message.text.replace('.', '', 1).isdigit()
-    )
-    async def get_product_price(message: types.Message):
-        price = float(message.text)
-        current_sheet = user_data[message.chat.id]["current_sheet"]
-        user_data[message.chat.id]["products"][current_sheet][-1]["price_per_unit"] = price
-        user_data[message.chat.id]["step"] = "next_product"
-        await message.answer("Данные сохранены! Введи название следующего изделия или напиши 'далее' для перехода к следующему листу.")
-
-    @dp.message_handler(
-        lambda message: user_data.get(message.chat.id, {}).get('current_handler') == 'manual' 
-        and user_data[message.chat.id].get("step") == "next_product"
-    )
-    async def process_next_product_or_sheet(message: types.Message):
-        if message.text.lower() == 'далее':
-            current_sheet = user_data[message.chat.id]["current_sheet"]
-            sheets = user_data[message.chat.id]["sheets"]
-            current_index = sheets.index(current_sheet)
-            
-            if current_index + 1 < len(sheets):
-                next_sheet = sheets[current_index + 1]
-                user_data[message.chat.id]["current_sheet"] = next_sheet
-                user_data[message.chat.id]["step"] = "product_name"
-                await message.answer(f"Переходим к следующему листу: {next_sheet}\nВведи название изделия:")
-            else:
-                await message.answer("Все данные введены! Сейчас сформирую Excel файл.")
-                create_excel(message.chat.id, user_data)
-                await message.answer_document(open(f"smeta_{message.chat.id}.xlsx", "rb"))
-                user_data[message.chat.id].clear()
-        else:
-            current_sheet = user_data[message.chat.id]["current_sheet"]
-            product_name = message.text
-            user_data[message.chat.id]["products"][current_sheet].append({
-                "name": product_name,
-                "quantity": 0,
-                "unit": "",
-                "price_per_unit": 0
-            })
-            user_data[message.chat.id]["step"] = "quantity"
-            await message.answer("Введи количество:")
+    if previous_state == 7:  # Назад с PRICE
+        current_sheet = user_data[chat_id]["current_sheet"]
+        await update.message.reply_text(
+            "Выбери единицу измерения (нажми на кнопку):",
+            reply_markup=ReplyKeyboardMarkup(
+                [[KeyboardButton("м"), KeyboardButton("м²")], [KeyboardButton("м³"), KeyboardButton("шт")]],
+                resize_keyboard=True
+            )
+        )
+        return 6  # UNIT
+    elif previous_state == 8:  # Назад с NEXT_PRODUCT
+        current_sheet = user_data[chat_id]["current_sheet"]
+        if user_data[chat_id]["products"][current_sheet]:
+            user_data[chat_id]["products"][current_sheet].pop()  # Удаляем последнее изделие
+        await update.message.reply_text(
+            f"Для листа '{current_sheet}' укажи цену за единицу для '{user_data[chat_id]['products'][current_sheet][-1]['name']}':",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("/cancel")]], resize_keyboard=True)
+        )
+        return 7  # PRICE
+    else:
+        await update.message.reply_text("Нельзя вернуться назад на этом этапе.")
+        return previous_state
