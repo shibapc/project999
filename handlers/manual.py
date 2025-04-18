@@ -44,6 +44,73 @@ def calculate_price_formula(formula: str, products: list) -> float:
         return 0.0
 
 
+def calculate_tunnel_cost(radius_mm: float, length_mm: float, materials_db: dict) -> dict:
+    """Рассчитать стоимость тоннеля из нержавеющей стали."""
+    import math
+
+    # Получаем данные о листе стали
+    steel_sheet = next(
+        (material for material in materials_db["materials"] if material["name"] == "Лист нержавеющей стали 1250мм*2500мм"),
+        None
+    )
+    if not steel_sheet:
+        raise ValueError("Лист нержавеющей стали не найден в базе данных.")
+
+    sheet_width_mm = steel_sheet["parameters"]["width_mm"]  # 1250 мм
+    sheet_length_mm = steel_sheet["parameters"]["length_mm"]  # 2500 мм
+    sheet_price = steel_sheet["price"]
+
+    # Получаем данные о работе "Резка листа"
+    cutting_work = next(
+        (work for work in materials_db["works"] if work["name"] == "Резка листа"),
+        None
+    )
+    cutting_price = cutting_work["price"] if cutting_work else 0
+
+    # Получаем данные о работе "Сварка листов нержавеющей стали"
+    welding_work = next(
+        (work for work in materials_db["works"] if work["name"] == "Сварка листов нержавеющей стали"),
+        None
+    )
+    welding_price = welding_work["price"] if welding_work else 0
+
+    # Рассчитываем длину окружности тоннеля
+    circumference = 2 * math.pi * radius_mm  # Длина окружности = 2πr
+
+    # Рассчитываем количество листов по длине тоннеля
+    sheets_needed_length = math.ceil(length_mm / sheet_width_mm)
+
+    # Проверяем, нужно ли обрезать листы по длине окружности
+    cuts_per_sheet = 1 if circumference < sheet_length_mm else 0
+
+    # Проверяем, нужно ли обрезать последний лист по длине тоннеля
+    extra_cut = 1 if length_mm % sheet_width_mm != 0 else 0
+
+    # Общее количество резок
+    total_cuts = (cuts_per_sheet * sheets_needed_length) + extra_cut
+
+    # Рассчитываем количество сварок
+    welds_for_rounding = sheets_needed_length  # Сварка для закругления каждого листа
+    welds_for_joining = max(0, sheets_needed_length - 1)  # Сварка между листами
+    total_welds = welds_for_rounding + welds_for_joining
+
+    # Итоговая стоимость
+    total_sheet_cost = sheets_needed_length * sheet_price
+    total_cutting_cost = total_cuts * cutting_price
+    total_welding_cost = total_welds * welding_price
+    total_cost = total_sheet_cost + total_cutting_cost + total_welding_cost
+
+    return {
+        "sheets_needed": sheets_needed_length,
+        "cuts_needed": total_cuts,
+        "welds_needed": total_welds,
+        "total_sheet_cost": total_sheet_cost,
+        "total_cutting_cost": total_cutting_cost,
+        "total_welding_cost": total_welding_cost,
+        "total_cost": total_cost,
+    }
+
+
 async def get_number_of_sheets(
     update: Update, context: CallbackContext, user_data: dict
 ) -> int:
@@ -134,7 +201,7 @@ async def show_categories(update: Update, user_data: dict):
     sheets = user_data[chat_id].get("sheets", [])
 
     material_phase = user_data[chat_id]["material_phase"]
-    categories = ["Материалы"] if material_phase else ["Работы", "Доставка"]
+    categories = ["Материалы", "Изделия"] if material_phase else ["Работы", "Доставка"]
     keyboard = [[KeyboardButton(cat)] for cat in categories]
     if material_phase:
         keyboard.append(
@@ -227,6 +294,16 @@ async def get_product_name(
         )
         return 4
 
+    if text == "Изделия":
+        templates = MATERIALS_DB["templates"]
+        keyboard = [[KeyboardButton(template["name"])] for template in templates]
+        keyboard.append([KeyboardButton("/cancel")])
+        await update.message.reply_text(
+            "Выбери изделие:",
+            reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
+        )
+        return 4
+
     item = next(
         (
             i
@@ -240,9 +317,39 @@ async def get_product_name(
         None,
     )
     if not item:
-        logger.debug(f"Элемент '{text}' не найден, chat_id={chat_id}")
-        await show_categories(update, user_data)
-        return 4
+        item = next(
+            (template for template in MATERIALS_DB["templates"] if template["name"] == text),
+            None,
+        )
+        if item:
+            current_sheet = user_data[chat_id]["current_sheet"]
+            if current_sheet not in user_data[chat_id]["products"]:
+                user_data[chat_id]["products"][current_sheet] = []
+
+            product = {
+                "id": item["id"],
+                "name": item["name"],
+                "category": item["category"],
+                "quantity": 0,
+                "unit": item["unit"],
+                "price_per_unit": item.get("price", 0),
+                "variable": item.get("variable", False),
+            }
+            user_data[chat_id]["products"][current_sheet].append(product)
+
+            if product["name"] == "Тоннель из нержавеющей стали":
+                user_data[chat_id]["awaiting_radius"] = True
+                await update.message.reply_text(
+                    "Укажи радиус тоннеля (мм):",
+                    reply_markup=ReplyKeyboardMarkup(
+                        [[KeyboardButton("/cancel")]], resize_keyboard=True
+                    ),
+                )
+                return 5
+        else:
+            logger.debug(f"Элемент '{text}' не найден, chat_id={chat_id}")
+            await show_categories(update, user_data)
+            return 4
 
     current_sheet = user_data[chat_id]["current_sheet"]
     if current_sheet not in user_data[chat_id]["products"]:
@@ -350,6 +457,55 @@ async def get_product_quantity(
             ),
         )
         return 6
+    elif product["name"] == "Тоннель из нержавеющей стали":
+        if user_data[chat_id].get("awaiting_radius"):
+            if not text.replace(".", "", 1).isdigit():
+                await update.message.reply_text("Введи число для радиуса (мм).")
+                return 5
+            product["radius"] = float(text)
+            user_data[chat_id]["awaiting_radius"] = False
+            user_data[chat_id]["awaiting_length"] = True
+            await update.message.reply_text(
+                "Укажи длину тоннеля (мм):",
+                reply_markup=ReplyKeyboardMarkup(
+                    [[KeyboardButton("/cancel")]], resize_keyboard=True
+                ),
+            )
+            return 5
+        elif user_data[chat_id].get("awaiting_length"):
+            if not text.replace(".", "", 1).isdigit():
+                await update.message.reply_text("Введи число для длины (мм).")
+                return 5
+            product["length"] = float(text)
+            user_data[chat_id]["awaiting_length"] = False
+
+            # Рассчитываем стоимость тоннеля
+            cost_data = calculate_tunnel_cost(product["radius"], product["length"], MATERIALS_DB)
+            product["quantity"] = 1  # Один тоннель
+            product["price_per_unit"] = cost_data["total_cost"]
+
+            logger.debug(
+                f"Рассчитана стоимость тоннеля: {cost_data}, chat_id={chat_id}"
+            )
+            await update.message.reply_text(
+                f"Для '{product['name']}' (радиус {product['radius']} мм, длина {product['length']} мм):\n"
+                f"Листы: {cost_data['sheets_needed']} шт\n"
+                f"Резка: {cost_data['cuts_needed']} резов\n"
+                f"Сварка: {cost_data['welds_needed']} сварок\n"
+                f"Стоимость листов: {cost_data['total_sheet_cost']:.2f} ₽\n"
+                f"Стоимость резки: {cost_data['total_cutting_cost']:.2f} ₽\n"
+                f"Стоимость сварки: {cost_data['total_welding_cost']:.2f} ₽\n"
+                f"Итоговая стоимость: {cost_data['total_cost']:.2f} ₽\n"
+                f"Подтвердить или ввести цену?",
+                reply_markup=ReplyKeyboardMarkup(
+                    [
+                        [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
+                        [KeyboardButton("Назад"), KeyboardButton("/cancel")],
+                    ],
+                    resize_keyboard=True,
+                ),
+            )
+            return 6
     else:
         if not text.replace(".", "", 1).isdigit():
             await update.message.reply_text("Введи число.")
