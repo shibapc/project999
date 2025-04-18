@@ -1,0 +1,56 @@
+{
+    "materials": [
+      {
+        "id": 1,
+        "name": "Горка из нержавеющей стали",
+        "category": "Материалы",
+        "unit": "м³",
+        "price": 0,
+        "variable": true,
+        "parameters": ["width", "height"]
+      },
+      {
+        "id": 2,
+        "name": "Арматура 12мм",
+        "category": "Материалы",
+        "unit": "м",
+        "price": 50.00
+      },
+      {
+        "id": 3,
+        "name": "Доска 50x150",
+        "category": "Материалы",
+        "unit": "м",
+        "price": 30.00
+      }
+    ],
+    "works": [
+      {
+        "id": 4,
+        "name": "Монтаж фундамента",
+        "category": "Работы",
+        "unit": "м²",
+        "price_formula": "sum_material_volume * 1000",
+        "depends_on_materials": true
+      }
+    ],
+    "other": [
+      {
+        "id": 5,
+        "name": "Доставка материалов",
+        "category": "Прочее",
+        "unit": "шт",
+        "price_formula": "sum_material_volume * 5000 + 1000",
+        "depends_on_materials": true
+      }
+    ],
+    "templates": [
+      {
+        "name": "Скамейка",
+        "items": [
+          {"material_id": 2, "quantity": 10},
+          {"work_id": 4, "quantity": 2}
+        ]
+      }
+    ]
+  }

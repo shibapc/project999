@@ -16,7 +16,6 @@ from handlers.manual import (
     get_product_name,
     get_product_quantity,
     get_product_unit,
-    get_product_price,
     process_next_product_or_sheet,
     go_back,
 )
@@ -31,66 +30,50 @@ logger = logging.getLogger(__name__)
 user_data = {}
 
 # Клавиатура для выбора метода
-METHOD_SELECTION, GET_SHEETS_NUM, GET_SHEET_NAMES, MAF_QUANTITY, PRODUCT_NAME, QUANTITY, UNIT, PRICE, NEXT_PRODUCT, AI_STATE = range(10)
-
-method_keyboard = ReplyKeyboardMarkup(
-    [[KeyboardButton("Самостоятельно"), KeyboardButton("Искусственный Интеллект")]],
-    resize_keyboard=True,
-)
+METHOD_SELECTION, GET_SHEETS_NUM, GET_SHEET_NAMES, MAF_QUANTITY, PRODUCT_NAME, QUANTITY, PRICE, NEXT_PRODUCT, AI_STATE = range(9)
 
 async def start_command(update: Update, context: CallbackContext) -> int:
-    """Обработка команды /start."""
+    """Обработчик команды /start."""
     chat_id = update.message.chat_id
-    user_data[chat_id] = {
-        "method": None,
-        "current_handler": None,
-        "previous_state": None,
-    }
+    user_data[chat_id] = {"products": {}, "current_handler": "manual"}
+    keyboard = ReplyKeyboardMarkup(
+        [[KeyboardButton("Самостоятельно"), KeyboardButton("Через ИИ")]],
+        resize_keyboard=True
+    )
     await update.message.reply_text(
-        "Как вы хотите создать смету?\nВыбери метод с помощью кнопок ниже:",
-        reply_markup=method_keyboard
+        "Привет! Я помогу создать смету. Выбери способ создания:\n"
+        "- Самостоятельно: ты вводишь данные поэтапно.\n"
+        "- Через ИИ: просто напиши, что нужно, и я всё сделаю.",
+        reply_markup=keyboard
     )
     return METHOD_SELECTION
 
 async def handle_method_selection(update: Update, context: CallbackContext) -> int:
-    """Обработка выбора метода (Самостоятельно или ИИ)."""
+    """Обработка выбора метода создания сметы."""
     chat_id = update.message.chat_id
     text = update.message.text
 
-    if chat_id not in user_data or user_data[chat_id].get("current_handler"):
-        await update.message.reply_text("Пожалуйста, начни с команды /start.")
-        return METHOD_SELECTION
-
     if text == "Самостоятельно":
-        user_data[chat_id].update({
-            "method": "manual",
-            "current_handler": "manual",
-            "sheets": [],
-            "current_sheet": None,
-            "products": {},
-            "quantities": {},
-        })
+        user_data[chat_id]["current_handler"] = "manual"
         await update.message.reply_text(
-            "Сколько листов нужно создать (без учёта сводного)?\nВведи число:",
+            "Сколько листов нужно создать?",
             reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True)
         )
         return GET_SHEETS_NUM
-
-    elif text == "Искусственный Интеллект":
-        user_data[chat_id].update({
-            "method": "ai",
-            "current_handler": "ai"
-        })
+    elif text == "Через ИИ":
+        user_data[chat_id]["current_handler"] = "ai"
         await update.message.reply_text(
-            "ИИ-режим пока в разработке. Выбери другой метод или начни заново с /start.",
-            reply_markup=method_keyboard
+            "Опиши, что должно быть в смете (например, 'Скамейка из дерева и горка из стали').",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton("Отмена создания")]], resize_keyboard=True)
         )
         return AI_STATE
-
     else:
         await update.message.reply_text(
-            "Пожалуйста, выбери метод с помощью кнопок ниже:",
-            reply_markup=method_keyboard
+            "Пожалуйста, выбери 'Самостоятельно' или 'Через ИИ'.",
+            reply_markup=ReplyKeyboardMarkup(
+                [[KeyboardButton("Самостоятельно"), KeyboardButton("Через ИИ")]],
+                resize_keyboard=True
+            )
         )
         return METHOD_SELECTION
 
@@ -99,10 +82,9 @@ async def cancel(update: Update, context: CallbackContext) -> int:
     chat_id = update.message.chat_id
     user_data[chat_id].clear()
     await update.message.reply_text(
-        "Создание сметы отменено. Начни заново с /start.",
-        reply_markup=None
+        "Создание сметы отменено.", reply_markup=None
     )
-    return ConversationHandler.END
+    return -1  # ConversationHandler.END
 
 def main():
     """Настройка и запуск бота."""
@@ -141,20 +123,14 @@ def main():
             ],
             QUANTITY: [
                 MessageHandler(
-                    filters.TEXT & ~filters.COMMAND & filters.Regex(r'^\d+$'),
+                    filters.TEXT & ~filters.COMMAND,
                     lambda update, context: get_product_quantity(update, context, user_data)
-                )
-            ],
-            UNIT: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND & filters.Regex(r'^(м|м²|м³|шт)$'),
-                    lambda update, context: get_product_unit(update, context, user_data)
                 )
             ],
             PRICE: [
                 MessageHandler(
                     filters.TEXT & ~filters.COMMAND,
-                    lambda update, context: get_product_price(update, context, user_data)
+                    lambda update, context: get_product_unit(update, context, user_data)
                 ),
                 MessageHandler(
                     filters.TEXT & filters.Regex(r'^Назад$'),
