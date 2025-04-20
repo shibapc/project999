@@ -1,93 +1,81 @@
 {
     "materials": [
-        {
-            "id": 1,
-            "name": "Арматура 12мм",
-            "category": "Материалы",
-            "unit": "м",
-            "price": 50.00
-        },
-        {
-            "id": 2,
-            "name": "Доска 50x150",
-            "category": "Материалы",
-            "unit": "м",
-            "price": 30.00
-        },
-        {
-            "id": 3,
-            "name": "Лист нержавеющей стали 1250мм*2500мм",
-            "category": "Материалы",
-            "unit": "шт",
-            "price": 3500,
-            "parameters": {
-                "length_mm": 2500,
-                "width_mm": 1250,
-                "thickness_mm": 2
-            }
-        }
+      {
+        "id": 1,
+        "name": "Арматура 12мм",
+        "category": "Материалы",
+        "unit": "м",
+        "price": 100
+      },
+      {
+        "id": 2,
+        "name": "Доска",
+        "category": "Материалы",
+        "unit": "шт",
+        "variable": true,
+        "parameters": ["длина", "ширина", "толщина"],
+        "calculation_function": "calculate_board_cost"
+      },
+      {
+        "id": 3,
+        "name": "Лист нержавеющей стали",
+        "category": "Материалы",
+        "unit": "шт",
+        "variable": true,
+        "parameters": ["длина", "ширина", "толщина"],
+        "calculation_function": "calculate_steel_sheet_cost"
+      }
     ],
     "works": [
-        {
-            "id": 1,
-            "name": "Монтаж фундамента",
-            "category": "Работы",
-            "unit": "м²",
-            "price_formula": "sum_material_volume * 1000",
-            "depends_on_materials": true
-        },
-        {
-            "id": 2,
-            "name": "Сварка листов нержавеющей стали",
-            "category": "Работы",
-            "unit": "шт",
-            "price": 1000
-        },
-        {
-            "id": 3,
-            "name": "Резка листа",
-            "category": "Работы",
-            "unit": "рез",
-            "price": 500
-        }
+      {
+        "id": 4,
+        "name": "Резка листа",
+        "category": "Работы",
+        "unit": "шт",
+        "price": 500
+      },
+      {
+        "id": 5,
+        "name": "Сварка листов нержавеющей стали",
+        "category": "Работы",
+        "unit": "шт",
+        "price": 1000
+      },
+      {
+        "id": 6,
+        "name": "Монтаж фундамента",
+        "category": "Работы",
+        "unit": "шт",
+        "price_formula": "sum_material_volume * 1000"
+      }
     ],
     "other": [
-        {
-            "id": 1,
-            "name": "Доставка материалов",
-            "category": "Прочее",
-            "unit": "шт",
-            "price_formula": "sum_material_volume * 5000 + 1000",
-            "depends_on_materials": true
-        }
+      {
+        "id": 7,
+        "name": "Доставка материалов",
+        "category": "Доставка",
+        "unit": "шт",
+        "price_formula": "sum_material_volume * 5000"
+      }
     ],
     "templates": [
-        {
-            "id": 1,
-            "name": "Горка из нержавеющей стали",
-            "category": "Изделия",
-            "unit": "м³",
-            "price": 0,
-            "variable": true,
-            "parameters": ["width", "height"]
-        },
-        {
-            "id": 2,
-            "name": "Скамейка",
-            "category": "Изделия",
-            "items": [
-                {"material_id": 1, "quantity": 10},
-                {"work_id": 1, "quantity": 2}
-            ]
-        },
-        {
-            "id": 3,
-            "name": "Тоннель из нержавеющей стали",
-            "category": "Изделия",
-            "unit": "шт",
-            "price": 0,
-            "variable": true,
-            "parameters": ["radius", "length"]
-        }
+      {
+        "id": 8,
+        "name": "Горка",
+        "category": "Изделия",
+        "unit": "шт",
+        "variable": true,
+        "parameters": ["ширина", "высота"],
+        "calculation_function": "calculate_slide_cost"
+      },
+      {
+        "id": 9,
+        "name": "Тоннель",
+        "category": "Изделия",
+        "unit": "шт",
+        "variable": true,
+        "parameters": ["радиус", "длина"],
+        "calculation_function": "calculate_tunnel_cost"
+      }
     ]
-}
+  }

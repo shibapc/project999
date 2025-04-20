@@ -4,6 +4,13 @@ import json
 import logging
 from utils import create_excel
 import os
+from calculations import (
+    calculate_board_cost,
+    calculate_steel_sheet_cost,
+    calculate_slide_cost,
+    calculate_tunnel_cost,
+    calculate_price_formula,
+)
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -12,103 +19,6 @@ logger = logging.getLogger(__name__)
 # Загрузка базы материалов
 with open("materials.json", "r", encoding="utf-8") as f:
     MATERIALS_DB = json.load(f)
-
-
-def calculate_slide_cost(width_mm: float, height_mm: float) -> dict:
-    """Рассчитать стоимость горки."""
-    depth_mm = 300
-    volume_m3 = (width_mm * height_mm * depth_mm) / 1_000_000_000
-    cost_per_m3 = 700_000 - 50 * (height_mm - 900)
-    wholesale_cost = volume_m3 * cost_per_m3
-    return {
-        "volume_m3": volume_m3,
-        "cost_per_m3": cost_per_m3,
-        "wholesale_cost": wholesale_cost,
-        "retail_cost": wholesale_cost * 1.087,
-    }
-
-
-def calculate_price_formula(formula: str, products: list) -> float:
-    """Рассчитать стоимость по формуле."""
-    sum_material_volume = sum(
-        p.get("volume_m3", 0) * p["quantity"]
-        for p in products
-        if p["category"] == "Материалы"
-    )
-    try:
-        return eval(
-            formula, {"__builtins__": {}}, {"sum_material_volume": sum_material_volume}
-        )
-    except Exception as e:
-        logger.error(f"Ошибка в формуле '{formula}': {e}")
-        return 0.0
-
-
-def calculate_tunnel_cost(radius_mm: float, length_mm: float, materials_db: dict) -> dict:
-    """Рассчитать стоимость тоннеля из нержавеющей стали."""
-    import math
-
-    # Получаем данные о листе стали
-    steel_sheet = next(
-        (material for material in materials_db["materials"] if material["name"] == "Лист нержавеющей стали 1250мм*2500мм"),
-        None
-    )
-    if not steel_sheet:
-        raise ValueError("Лист нержавеющей стали не найден в базе данных.")
-
-    sheet_width_mm = steel_sheet["parameters"]["width_mm"]  # 1250 мм
-    sheet_length_mm = steel_sheet["parameters"]["length_mm"]  # 2500 мм
-    sheet_price = steel_sheet["price"]
-
-    # Получаем данные о работе "Резка листа"
-    cutting_work = next(
-        (work for work in materials_db["works"] if work["name"] == "Резка листа"),
-        None
-    )
-    cutting_price = cutting_work["price"] if cutting_work else 0
-
-    # Получаем данные о работе "Сварка листов нержавеющей стали"
-    welding_work = next(
-        (work for work in materials_db["works"] if work["name"] == "Сварка листов нержавеющей стали"),
-        None
-    )
-    welding_price = welding_work["price"] if welding_work else 0
-
-    # Рассчитываем длину окружности тоннеля
-    circumference = 2 * math.pi * radius_mm  # Длина окружности = 2πr
-
-    # Рассчитываем количество листов по длине тоннеля
-    sheets_needed_length = math.ceil(length_mm / sheet_width_mm)
-
-    # Проверяем, нужно ли обрезать листы по длине окружности
-    cuts_per_sheet = 1 if circumference < sheet_length_mm else 0
-
-    # Проверяем, нужно ли обрезать последний лист по длине тоннеля
-    extra_cut = 1 if length_mm % sheet_width_mm != 0 else 0
-
-    # Общее количество резок
-    total_cuts = (cuts_per_sheet * sheets_needed_length) + extra_cut
-
-    # Рассчитываем количество сварок
-    welds_for_rounding = sheets_needed_length  # Сварка для закругления каждого листа
-    welds_for_joining = max(0, sheets_needed_length - 1)  # Сварка между листами
-    total_welds = welds_for_rounding + welds_for_joining
-
-    # Итоговая стоимость
-    total_sheet_cost = sheets_needed_length * sheet_price
-    total_cutting_cost = total_cuts * cutting_price
-    total_welding_cost = total_welds * welding_price
-    total_cost = total_sheet_cost + total_cutting_cost + total_welding_cost
-
-    return {
-        "sheets_needed": sheets_needed_length,
-        "cuts_needed": total_cuts,
-        "welds_needed": total_welds,
-        "total_sheet_cost": total_sheet_cost,
-        "total_cutting_cost": total_cutting_cost,
-        "total_welding_cost": total_welding_cost,
-        "total_cost": total_cost,
-    }
 
 
 async def get_number_of_sheets(
@@ -196,10 +106,8 @@ async def get_maf_quantity(
 async def show_categories(update: Update, user_data: dict):
     """Показать категории в зависимости от фазы."""
     chat_id = update.message.chat_id
-
     current_sheet = user_data[chat_id].get("current_sheet", "<не задан>")
     sheets = user_data[chat_id].get("sheets", [])
-
     material_phase = user_data[chat_id]["material_phase"]
     categories = ["Материалы", "Изделия"] if material_phase else ["Работы", "Доставка"]
     keyboard = [[KeyboardButton(cat)] for cat in categories]
@@ -208,7 +116,6 @@ async def show_categories(update: Update, user_data: dict):
             [KeyboardButton("Завершить выбор материалов"), KeyboardButton("/cancel")]
         )
     else:
-        # Проверяем, является ли текущий лист последним
         sheets = user_data[chat_id]["sheets"]
         current_sheet = user_data[chat_id]["current_sheet"]
         current_index = sheets.index(current_sheet)
@@ -304,56 +211,40 @@ async def get_product_name(
         )
         return 4
 
-    item = next(
-        (
-            i
-            for i in (
-                MATERIALS_DB["materials"]
-                if material_phase
-                else MATERIALS_DB["works"] + MATERIALS_DB["other"]
-            )
-            if i["name"] == text
-        ),
-        None,
-    )
-    if not item:
-        item = next(
-            (template for template in MATERIALS_DB["templates"] if template["name"] == text),
-            None,
-        )
-        if item:
-            current_sheet = user_data[chat_id]["current_sheet"]
-            if current_sheet not in user_data[chat_id]["products"]:
-                user_data[chat_id]["products"][current_sheet] = []
-
-            product = {
-                "id": item["id"],
-                "name": item["name"],
-                "category": item["category"],
-                "quantity": 0,
-                "unit": item["unit"],
-                "price_per_unit": item.get("price", 0),
-                "variable": item.get("variable", False),
-            }
-            user_data[chat_id]["products"][current_sheet].append(product)
-
-            if product["name"] == "Тоннель из нержавеющей стали":
-                user_data[chat_id]["awaiting_radius"] = True
-                await update.message.reply_text(
-                    "Укажи радиус тоннеля (мм):",
-                    reply_markup=ReplyKeyboardMarkup(
-                        [[KeyboardButton("/cancel")]], resize_keyboard=True
-                    ),
-                )
-                return 5
-        else:
-            logger.debug(f"Элемент '{text}' не найден, chat_id={chat_id}")
-            await show_categories(update, user_data)
-            return 4
-
     current_sheet = user_data[chat_id]["current_sheet"]
     if current_sheet not in user_data[chat_id]["products"]:
         user_data[chat_id]["products"][current_sheet] = []
+
+    # Поиск элемента
+    item = None
+    if material_phase:
+        item = next(
+            (i for i in MATERIALS_DB["materials"] if i["name"] == text),
+            None,
+        )
+    else:
+        item = next(
+            (
+                i
+                for i in MATERIALS_DB["works"] + MATERIALS_DB["other"]
+                if i["name"] == text
+            ),
+            None,
+        )
+    if not item:
+        item = next(
+            (
+                template
+                for template in MATERIALS_DB["templates"]
+                if template["name"] == text
+            ),
+            None,
+        )
+
+    if not item:
+        logger.debug(f"Элемент '{text}' не найден, chat_id={chat_id}")
+        await show_categories(update, user_data)
+        return 4
 
     product = {
         "id": item["id"],
@@ -382,17 +273,17 @@ async def get_product_name(
         f"Добавлен элемент '{product['name']}', category={product['category']}, products={user_data[chat_id]['products'][current_sheet]}, chat_id={chat_id}"
     )
 
-    if product["variable"]:
+    if product["variable"] and item.get("parameters"):
+        user_data[chat_id]["awaiting_param"] = item["parameters"][0]
         await update.message.reply_text(
-            f"Для '{item['name']}' укажи ширину (мм):",
+            f"Укажи {item['parameters'][0]} для '{item['name']}':",
             reply_markup=ReplyKeyboardMarkup(
                 [[KeyboardButton("/cancel")]], resize_keyboard=True
             ),
         )
-        user_data[chat_id]["awaiting_width"] = True
         return 5
     await update.message.reply_text(
-        f"Для '{item['name']}' укажи количество ({item['unit']}):",
+        f"Укажи количество для '{item['name']}' ({item['unit']}):",
         reply_markup=ReplyKeyboardMarkup(
             [[KeyboardButton("/cancel")]], resize_keyboard=True
         ),
@@ -412,132 +303,130 @@ async def get_product_quantity(
         f"get_product_quantity: text='{text}', product={product['name']}, variable={product['variable']}, chat_id={chat_id}"
     )
 
-    if user_data[chat_id].get("awaiting_width"):
+    # Поиск элемента в materials или templates
+    item = None
+    if product["category"] == "Материалы":
+        item = next(
+            (i for i in MATERIALS_DB["materials"] if i["name"] == product["name"]),
+            None,
+        )
+    elif product["category"] == "Изделия":
+        item = next(
+            (i for i in MATERIALS_DB["templates"] if i["name"] == product["name"]),
+            None,
+        )
+
+    if not item:
+        logger.error(f"Элемент '{product['name']}' не найден, chat_id={chat_id}")
+        await update.message.reply_text("Ошибка. Начни заново с /start.")
+        return -1
+
+    # Словарь для маппинга параметров
+    param_map = {
+        "длина": "length_mm",
+        "ширина": "width_mm",
+        "толщина": "thickness_mm",
+        "высота": "height_mm",
+        "радиус": "radius_mm",
+    }
+
+    if user_data[chat_id].get("awaiting_param"):
+        param = user_data[chat_id]["awaiting_param"]
         if not text.replace(".", "", 1).isdigit():
-            await update.message.reply_text("Введи число.")
+            await update.message.reply_text(f"Введи число для {param}.")
             return 5
-        product["width"] = float(text)
-        user_data[chat_id]["awaiting_width"] = False
-        user_data[chat_id]["awaiting_height"] = True
-        await update.message.reply_text(
-            f"Для '{product['name']}' укажи высоту (мм):",
-            reply_markup=ReplyKeyboardMarkup(
-                [[KeyboardButton("/cancel")]], resize_keyboard=True
-            ),
-        )
-        return 5
-    elif user_data[chat_id].get("awaiting_height"):
-        if not text.replace(".", "", 1).isdigit():
-            await update.message.reply_text("Введи число.")
-            return 5
-        product["height"] = float(text)
-        user_data[chat_id]["awaiting_height"] = False
-        cost_data = calculate_slide_cost(product["width"], product["height"])
-        product["volume_m3"] = cost_data["volume_m3"]
-        product["quantity"] = cost_data[
-            "volume_m3"
-        ]  # Автоматически устанавливаем quantity = volume_m3
-        product["price_per_unit"] = cost_data["cost_per_m3"]
-        logger.debug(
-            f"Установлено quantity={product['quantity']} для '{product['name']}' на основе volume_m3={cost_data['volume_m3']}, chat_id={chat_id}"
-        )
-        await update.message.reply_text(
-            f"Для '{product['name']}' (ширина {product['width']} мм, высота {product['height']} мм):\n"
-            f"Объём: {cost_data['volume_m3']:.6f} м³\n"
-            f"Оптовая цена за м³: {cost_data['cost_per_m3']:,.2f} ₽\n"
-            f"Общая оптовая: {cost_data['wholesale_cost']:,.2f} ₽\n"
-            f"Розничная: {cost_data['retail_cost']:,.2f} ₽\n"
-            f"Подтвердить или ввести цену?",
-            reply_markup=ReplyKeyboardMarkup(
-                [
-                    [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
-                    [KeyboardButton("Назад"), KeyboardButton("/cancel")],
-                ],
-                resize_keyboard=True,
-            ),
-        )
-        return 6
-    elif product["name"] == "Тоннель из нержавеющей стали":
-        if user_data[chat_id].get("awaiting_radius"):
-            if not text.replace(".", "", 1).isdigit():
-                await update.message.reply_text("Введи число для радиуса (мм).")
-                return 5
-            product["radius"] = float(text)
-            user_data[chat_id]["awaiting_radius"] = False
-            user_data[chat_id]["awaiting_length"] = True
+        product[param_map.get(param, param)] = float(text)
+
+        current_param_index = item["parameters"].index(param)
+        if current_param_index + 1 < len(item["parameters"]):
+            next_param = item["parameters"][current_param_index + 1]
+            user_data[chat_id]["awaiting_param"] = next_param
             await update.message.reply_text(
-                "Укажи длину тоннеля (мм):",
+                f"Укажи {next_param} для '{product['name']}':",
                 reply_markup=ReplyKeyboardMarkup(
                     [[KeyboardButton("/cancel")]], resize_keyboard=True
                 ),
             )
             return 5
-        elif user_data[chat_id].get("awaiting_length"):
-            if not text.replace(".", "", 1).isdigit():
-                await update.message.reply_text("Введи число для длины (мм).")
-                return 5
-            product["length"] = float(text)
-            user_data[chat_id]["awaiting_length"] = False
-
-            # Рассчитываем стоимость тоннеля
-            cost_data = calculate_tunnel_cost(product["radius"], product["length"], MATERIALS_DB)
-            product["quantity"] = 1  # Один тоннель
-            product["price_per_unit"] = cost_data["total_cost"]
-
-            logger.debug(
-                f"Рассчитана стоимость тоннеля: {cost_data}, chat_id={chat_id}"
-            )
+        else:
+            user_data[chat_id]["awaiting_param"] = None
+            user_data[chat_id]["awaiting_quantity"] = True
             await update.message.reply_text(
-                f"Для '{product['name']}' (радиус {product['radius']} мм, длина {product['length']} мм):\n"
-                f"Листы: {cost_data['sheets_needed']} шт\n"
-                f"Резка: {cost_data['cuts_needed']} резов\n"
-                f"Сварка: {cost_data['welds_needed']} сварок\n"
-                f"Стоимость листов: {cost_data['total_sheet_cost']:.2f} ₽\n"
-                f"Стоимость резки: {cost_data['total_cutting_cost']:.2f} ₽\n"
-                f"Стоимость сварки: {cost_data['total_welding_cost']:.2f} ₽\n"
-                f"Итоговая стоимость: {cost_data['total_cost']:.2f} ₽\n"
-                f"Подтвердить или ввести цену?",
+                f"Укажи количество для '{product['name']}' ({product['unit']}):",
                 reply_markup=ReplyKeyboardMarkup(
-                    [
-                        [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
-                        [KeyboardButton("Назад"), KeyboardButton("/cancel")],
-                    ],
-                    resize_keyboard=True,
+                    [[KeyboardButton("/cancel")]], resize_keyboard=True
                 ),
             )
-            return 6
-    else:
+            return 5
+
+    if user_data[chat_id].get("awaiting_quantity"):
         if not text.replace(".", "", 1).isdigit():
             await update.message.reply_text("Введи число.")
             return 5
-        product["quantity"] = float(text)
-        logger.debug(
-            f"Установлено quantity={product['quantity']} для '{product['name']}', chat_id={chat_id}"
-        )
-        if (
-            product["category"] in ["Работы", "Доставка"]
-            and "price_formula"
-            in [
-                i
-                for i in (MATERIALS_DB["works"] + MATERIALS_DB["other"])
-                if i["name"] == product["name"]
-            ][0]
-        ):
-            product["price_per_unit"] = calculate_price_formula(
-                [
-                    i
-                    for i in (MATERIALS_DB["works"] + MATERIALS_DB["other"])
-                    if i["name"] == product["name"]
-                ][0]["price_formula"],
-                user_data[chat_id]["products"][current_sheet],
-            )
-            user_data[chat_id]["has_non_material"] = True
-            logger.debug(
-                f"Пересчитана цена и установлен has_non_material=True для '{product['name']}', chat_id={chat_id}"
-            )
+        quantity = float(text)
+        user_data[chat_id]["awaiting_quantity"] = False
+
+        if item.get("calculation_function"):
+            try:
+                # Выбор функции расчета
+                calc_function = {
+                    "calculate_board_cost": calculate_board_cost,
+                    "calculate_steel_sheet_cost": calculate_steel_sheet_cost,
+                    "calculate_slide_cost": calculate_slide_cost,
+                    "calculate_tunnel_cost": calculate_tunnel_cost,
+                }.get(item["calculation_function"])
+                if not calc_function:
+                    logger.error(
+                        f"Неизвестная функция расчета '{item['calculation_function']}', chat_id={chat_id}"
+                    )
+                    await update.message.reply_text(
+                        "Ошибка в настройке расчета. Попробуй снова."
+                    )
+                    return 5
+
+                params = {
+                    param_map.get(p, p): product.get(param_map.get(p, p), 0)
+                    for p in item["parameters"]
+                }
+                params["quantity"] = quantity
+                logger.debug(
+                    f"Вызов функции '{item['calculation_function']}' с параметрами: {params}, chat_id={chat_id}"
+                )
+                cost_data = (
+                    calc_function(**params, materials_db=MATERIALS_DB)
+                    if item["calculation_function"] == "calculate_tunnel_cost"
+                    else calc_function(**params)
+                )
+                logger.debug(f"Результат расчета: {cost_data}, chat_id={chat_id}")
+
+                # Проверяем наличие ожидаемых ключей
+                if "общая_стоимость" not in cost_data:
+                    logger.error(
+                        f"В cost_data отсутствует 'общая_стоимость': {cost_data}, chat_id={chat_id}"
+                    )
+                    await update.message.reply_text(
+                        "Ошибка в расчете стоимости. Попробуй снова."
+                    )
+                    return 5
+                product["quantity"] = cost_data.get("количество", 1)
+                product["price_per_unit"] = (
+                    cost_data.get("общая_стоимость", 0) / product["quantity"]
+                )
+                message = (
+                    f"Для '{product['name']}' ({', '.join(f'{p}: {product[param_map.get(p, p)]}' for p in item['parameters'])}):\n"
+                    f"общая стоимость: {cost_data['общая_стоимость']:.2f} ₽\n"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Ошибка при расчете '{product['name']}': {e}, chat_id={chat_id}"
+                )
+                await update.message.reply_text("Ошибка расчета. Попробуй снова.")
+                return 5
+        else:
+            message = f"Для '{product['name']}' расчет не требуется.\n"
+
         await update.message.reply_text(
-            f"Цена за единицу для '{product['name']}' ({product['unit']}): {product['price_per_unit']:.2f} ₽.\n"
-            f"Подтвердить или ввести цену?",
+            message + "Подтвердить или ввести цену?",
             reply_markup=ReplyKeyboardMarkup(
                 [
                     [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
@@ -547,6 +436,47 @@ async def get_product_quantity(
             ),
         )
         return 6
+
+    if not text.replace(".", "", 1).isdigit():
+        await update.message.reply_text("Введи число.")
+        return 5
+    product["quantity"] = float(text)
+    logger.debug(
+        f"Установлено quantity={product['quantity']} для '{product['name']}', chat_id={chat_id}"
+    )
+    if (
+        product["category"] in ["Работы", "Доставка"]
+        and "price_formula"
+        in [
+            i
+            for i in (MATERIALS_DB["works"] + MATERIALS_DB["other"])
+            if i["name"] == product["name"]
+        ][0]
+    ):
+        product["price_per_unit"] = calculate_price_formula(
+            [
+                i
+                for i in (MATERIALS_DB["works"] + MATERIALS_DB["other"])
+                if i["name"] == product["name"]
+            ][0]["price_formula"],
+            user_data[chat_id]["products"][current_sheet],
+        )
+        user_data[chat_id]["has_non_material"] = True
+        logger.debug(
+            f"Пересчитана цена и установлен has_non_material=True для '{product['name']}', chat_id={chat_id}"
+        )
+    await update.message.reply_text(
+        f"Цена за единицу для '{product['name']}' ({product['unit']}): {product['price_per_unit']:.2f} ₽.\n"
+        f"Подтвердить или ввести цену?",
+        reply_markup=ReplyKeyboardMarkup(
+            [
+                [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
+                [KeyboardButton("Назад"), KeyboardButton("/cancel")],
+            ],
+            resize_keyboard=True,
+        ),
+    )
+    return 6
 
 
 async def get_product_unit(
@@ -570,7 +500,7 @@ async def get_product_unit(
                 "Количество должно быть больше 0. Укажи количество заново."
             )
             await update.message.reply_text(
-                f"Для '{product['name']}' укажи количество ({product['unit']}):",
+                f"Укажи количество для '{product['name']}' ({product['unit']}):",
                 reply_markup=ReplyKeyboardMarkup(
                     [[KeyboardButton("/cancel")]], resize_keyboard=True
                 ),
@@ -611,7 +541,7 @@ async def get_product_unit(
                 "Количество должно быть больше 0. Укажи количество заново."
             )
             await update.message.reply_text(
-                f"Для '{product['name']}' укажи количество ({product['unit']}):",
+                f"Укажи количество для '{product['name']}' ({product['unit']}):",
                 reply_markup=ReplyKeyboardMarkup(
                     [[KeyboardButton("/cancel")]], resize_keyboard=True
                 ),
@@ -650,99 +580,35 @@ async def process_next_product_or_sheet(
     """Обработка перехода к следующему листу или формированию сметы."""
     chat_id = update.message.chat_id
     text = update.message.text
-    logger.debug(
-        f"process_next_product_or_sheet: raw_text={repr(text)}, stripped_text='{text.strip()}', normalized_text='{text.strip().lower().replace('\\n', '').replace('\\r', '')}', bytes_text={text.encode('utf-8')}, user_data={user_data[chat_id]}, chat_id={chat_id}"
-    )
+    logger.debug(f"process_next_product_or_sheet: text='{text}', chat_id={chat_id}")
+    sheets = user_data[chat_id]["sheets"]
+    current_sheet = user_data[chat_id]["current_sheet"]
+    current_index = sheets.index(current_sheet)
 
-    # Проверяем, что user_data содержит необходимые ключи
-    if not user_data.get(chat_id, {}).get("sheets") or not user_data[chat_id].get(
-        "current_sheet"
-    ):
-        logger.error(
-            f"Ошибка: sheets или current_sheet отсутствуют в user_data, chat_id={chat_id}"
-        )
-        await update.message.reply_text("Ошибка в данных. Начни заново с /start.")
-        user_data[chat_id].clear()
-        return -1
-
-    # Нормализуем текст для обработки
-    normalized_text = text.strip().lower().replace("\n", "").replace("\r", "")
-    if normalized_text == "переход к следующему листу":
-        sheets = user_data[chat_id]["sheets"]
-        current_sheet = user_data[chat_id]["current_sheet"]
-        try:
-            current_index = sheets.index(current_sheet)
-        except ValueError:
-            logger.error(
-                f"Ошибка: current_sheet='{current_sheet}' не найден в sheets={sheets}, chat_id={chat_id}"
-            )
-            await update.message.reply_text("Ошибка в данных. Начни заново с /start.")
-            user_data[chat_id].clear()
-            return -1
-
-        logger.debug(
-            f"Обработка 'Переход к следующему листу': current_sheet={current_sheet}, current_index={current_index}, sheets_count={len(sheets)}, products={user_data[chat_id]['products'].get(current_sheet, [])}, chat_id={chat_id}"
-        )
+    if text == "Переход к следующему листу":
         if current_index + 1 < len(sheets):
             user_data[chat_id]["current_sheet"] = sheets[current_index + 1]
             user_data[chat_id]["material_phase"] = True
-            user_data[chat_id]["has_non_material"] = False
-            logger.debug(
-                f"Переход к следующему листу: {user_data[chat_id]['current_sheet']}, chat_id={chat_id}"
-            )
-            await show_categories(update, user_data)
-            return 4
-        else:
-            logger.error(
-                f"Ошибка: попытка перехода к следующему листу, но текущий лист последний, sheets={sheets}, chat_id={chat_id}"
-            )
             await update.message.reply_text(
-                "Это последний лист. Выберите 'Перейти к формированию сметы'."
+                f"Переходим к листу '{user_data[chat_id]['current_sheet']}'."
             )
             await show_categories(update, user_data)
             return 4
-    elif normalized_text == "перейти к формированию сметы":
-        logger.debug(f"Обработка 'Перейти к формированию сметы', chat_id={chat_id}")
-        await update.message.reply_text(
-            "Закончить и создать Excel?",
+    elif text == "Перейти к формированию сметы":
+        excel_file = create_excel(user_data[chat_id])
+        await update.message.reply_document(
+            document=open(excel_file, "rb"),
+            caption="Вот твоя смета!",
             reply_markup=ReplyKeyboardMarkup(
-                [[KeyboardButton("Да"), KeyboardButton("Нет")]], resize_keyboard=True
+                [[KeyboardButton("/start")]], resize_keyboard=True
             ),
         )
-        user_data[chat_id]["awaiting_confirmation"] = True
-        return 8
-    elif user_data[chat_id].get("awaiting_confirmation"):
-        norm_text = text.strip().lower().replace("\n", "").replace("\r", "")
-        if norm_text == "да":
-            await update.message.reply_text("Формирую Excel...")
-            create_excel(chat_id, user_data)
-            file_name = os.path.join("smeta_files", f"smeta_{chat_id}.xlsx")
-            if os.path.exists(file_name):
-                with open(file_name, "rb") as file:
-                    await update.message.reply_document(document=file)
-                os.remove(file_name)
-            else:
-                await update.message.reply_text("Ошибка создания файла.")
-            user_data[chat_id].clear()
-            await update.message.reply_text("Смета создана! Начни заново с /start.")
-            return -1
-        elif norm_text == "нет":
-            user_data[chat_id]["awaiting_confirmation"] = False
-            await show_categories(update, user_data)
-            return 4
-        await update.message.reply_text(
-            "Выбери 'Да' или 'Нет'.",
-            reply_markup=ReplyKeyboardMarkup(
-                [[KeyboardButton("Да"), KeyboardButton("Нет")]]
-            ),
-        )
-        return 8
-    else:
-        logger.debug(
-            f"Необработанный ввод '{text}' в process_next_product_or_sheet, возвращаемся к категориям, chat_id={chat_id}"
-        )
-        await show_categories(update, user_data)
-        return 4
+        os.remove(excel_file)
+        return -1
+
+    await update.message.reply_text("Некорректный выбор. Попробуй снова.")
+    await show_categories(update, user_data)
+    return 4
 
 
 async def go_back(update: Update, context: CallbackContext, user_data: dict) -> int:
