@@ -1,0 +1,5 @@
+__pycache__/
+venv
+smeta_files
+logs
+handlers/__pycache__
