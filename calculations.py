@@ -1,5 +1,6 @@
 import math
 import logging
+from logger_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -36,54 +37,93 @@ def calculate_slide_cost(width_mm: float, height_mm: float) -> dict:
         "розничная_стоимость": wholesale_cost * 1.087,
     }
 
-def calculate_tunnel_cost(radius_mm: float, length_mm: float, materials_db: dict) -> dict:
-    """Рассчитать стоимость тоннеля из нержавеющей стали."""
-    steel_sheet = next(
-        (material for material in materials_db["materials"] if material["name"] == "Лист нержавеющей стали"),
-        None
-    )
-    if not steel_sheet:
-        raise ValueError("Лист нержавеющей стали не найден в базе данных.")
+def calculate_tunnel_cost(radius_mm: float, length_mm: float, materials_db: dict, quantity: float = 1) -> dict:
+    """Рассчитать стоимость тоннеля из нержавеющей стали с учётом резки и сварки по окружности и длине."""
+    logger.info(f"Расчет стоимости тоннеля: радиус={radius_mm}мм, длина={length_mm}мм")
+    try:
+        logger.debug("Начало расчета стоимости тоннеля")
+        
+        steel_sheet = next(
+            (material for material in materials_db["materials"] if material["name"] == "Лист нержавеющей стали"),
+            None
+        )
+        if not steel_sheet:
+            logger.error("Лист нержавеющей стали не найден в базе данных.")
+            raise ValueError("Лист нержавеющей стали не найден в базе данных.")
 
-    sheet_width_mm = steel_sheet["parameters"]["width_mm"]
-    sheet_length_mm = steel_sheet["parameters"]["length_mm"]
-    sheet_price = steel_sheet["price"]
+        sheet_width_mm = steel_sheet.get("width_mm")
+        sheet_length_mm = steel_sheet.get("length_mm")
+        sheet_price = steel_sheet.get("price")
 
-    cutting_work = next(
-        (work for work in materials_db["works"] if work["name"] == "Резка листа"),
-        None
-    )
-    cutting_price = cutting_work["price"] if cutting_work else 0
+        if sheet_width_mm is None or sheet_length_mm is None:
+            logger.error("Параметры 'width_mm' и 'length_mm' отсутствуют.")
+            raise ValueError(
+                "Параметры 'width_mm' и 'length_mm' для материала 'Лист нержавеющей стали' не заданы. "
+                "Убедитесь, что они указаны пользователем."
+            )
 
-    welding_work = next(
-        (work for work in materials_db["works"] if work["name"] == "Сварка листов нержавеющей стали"),
-        None
-    )
-    welding_price = welding_work["price"] if welding_work else 0
+        cutting_work = next(
+            (work for work in materials_db["works"] if work["name"] == "Резка листа"),
+            None
+        )
+        cutting_price = cutting_work["price"] if cutting_work else 0
 
-    circumference = 2 * math.pi * radius_mm
-    sheets_needed_length = math.ceil(length_mm / sheet_width_mm)
-    cuts_per_sheet = 1 if circumference < sheet_length_mm else 0
-    extra_cut = 1 if length_mm % sheet_width_mm != 0 else 0
-    total_cuts = (cuts_per_sheet * sheets_needed_length) + extra_cut
-    welds_for_rounding = sheets_needed_length
-    welds_for_joining = max(0, sheets_needed_length - 1)
-    total_welds = welds_for_rounding + welds_for_joining
+        welding_work = next(
+            (work for work in materials_db["works"] if work["name"] == "Сварка листов нержавеющей стали"),
+            None
+        )
+        welding_price = welding_work["price"] if welding_work else 0
 
-    total_sheet_cost = sheets_needed_length * sheet_price
-    total_cutting_cost = total_cuts * cutting_price
-    total_welding_cost = total_welds * welding_price
-    total_cost = total_sheet_cost + total_cutting_cost + total_welding_cost
+        circumference = 2 * math.pi * radius_mm
 
-    return {
-        "количество_листов": sheets_needed_length,
-        "количество_резок": total_cuts,
-        "количество_сварок": total_welds,
-        "стоимость_листов": total_sheet_cost,
-        "стоимость_резки": total_cutting_cost,
-        "стоимость_сварки": total_welding_cost,
-        "общая_стоимость": total_cost,
-    }
+        # Сколько блоков нужно по длине тоннеля (вдоль ширины листа)
+        sheets_needed_length = math.ceil(length_mm / sheet_width_mm)
+
+        # Сколько листов нужно по окружности (вдоль длины листа)
+        sheets_needed_circumference = math.ceil(circumference / sheet_length_mm)
+
+        # Нужна ли резка по окружности
+        needs_cutting_circ = (sheets_needed_circumference * sheet_length_mm) > circumference
+        cuts_circ = sheets_needed_length if needs_cutting_circ else 0
+
+        # Сварки по окружности — между листами
+        welds_circ = (sheets_needed_circumference - 1) * sheets_needed_length if sheets_needed_circumference > 1 else 0
+
+        # Нужна ли резка по длине тоннеля
+        total_length_from_sheets = sheets_needed_length * sheet_width_mm
+        needs_cutting_len = total_length_from_sheets > length_mm
+        cuts_len = 1 if needs_cutting_len else 0
+
+        # Сварки по длине — между блоками
+        welds_len = sheets_needed_length - 1 if sheets_needed_length > 1 else 0
+
+        # Общие значения
+        total_cuts = (cuts_circ + cuts_len) * quantity
+        total_welds = (welds_circ + welds_len) * quantity
+        total_sheets = sheets_needed_length * sheets_needed_circumference * quantity
+
+        # Стоимости
+        total_sheet_cost = total_sheets * sheet_price
+        total_cutting_cost = total_cuts * cutting_price
+        total_welding_cost = total_welds * welding_price
+        total_cost = total_sheet_cost + total_cutting_cost + total_welding_cost
+
+        result = {
+            "количество_листов": total_sheets,
+            "количество_резок": total_cuts,
+            "количество_сварок": total_welds,
+            "стоимость_листов": total_sheet_cost,
+            "стоимость_резки": total_cutting_cost,
+            "стоимость_сварки": total_welding_cost,
+            "общая_стоимость": total_cost,
+        }
+        logger.debug(f"Результат расчета: {result}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Ошибка при расчете стоимости тоннеля: {str(e)}", exc_info=True)
+        raise
+
 
 def calculate_price_formula(formula: str, products: list) -> float:
     """Рассчитать стоимость по формуле."""

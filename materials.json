@@ -23,7 +23,11 @@
         "unit": "шт",
         "variable": true,
         "parameters": ["длина", "ширина", "толщина"],
-        "calculation_function": "calculate_steel_sheet_cost"
+        "calculation_function": "calculate_steel_sheet_cost",
+        "width_mm": 1000,
+        "length_mm": 2000,
+        "thickness_mm": 2,
+        "price": 1500
       }
     ],
     "works": [

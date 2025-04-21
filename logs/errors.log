@@ -1,0 +1,24 @@
+2025-04-21 15:34:21,818 - handlers.manual - ERROR - Элемент 'Тоннель' не найден, chat_id=868381492
+2025-04-21 15:34:21,818 - handlers.manual - ERROR - Элемент 'Тоннель' не найден, chat_id=868381492
+2025-04-21 15:40:23,578 - handlers.manual - ERROR - Элемент 'Тоннель' не найден, chat_id=868381492
+2025-04-21 15:40:23,578 - handlers.manual - ERROR - Элемент 'Тоннель' не найден, chat_id=868381492
+2025-04-21 15:45:22,235 - handlers.manual - ERROR - Элемент 'Тоннель' не найден, chat_id=868381492
+2025-04-21 15:45:22,235 - handlers.manual - ERROR - Элемент 'Тоннель' не найден, chat_id=868381492
+2025-04-21 15:57:53,874 - handlers.manual - ERROR - Элемент 'Тоннель' не найден, chat_id=868381492
+2025-04-21 15:57:53,874 - handlers.manual - ERROR - Элемент 'Тоннель' не найден, chat_id=868381492
+2025-04-21 16:01:13,311 - handlers.manual - ERROR - Ошибка при расчете 'Тоннель': MaterialsManager.get_all_items() missing 1 required positional argument: 'section', chat_id=868381492
+2025-04-21 16:01:13,311 - handlers.manual - ERROR - Ошибка при расчете 'Тоннель': MaterialsManager.get_all_items() missing 1 required positional argument: 'section', chat_id=868381492
+2025-04-21 16:11:44,994 - calculations - ERROR - Ошибка при расчете стоимости тоннеля: list indices must be integers or slices, not str
+Traceback (most recent call last):
+  File "/Users/shiba/Desktop/bot/calculations.py", line 47, in calculate_tunnel_cost
+    (material for material in materials_db["materials"] if material["name"] == "Лист нержавеющей стали"),
+                              ~~~~~~~~~~~~^^^^^^^^^^^^^
+TypeError: list indices must be integers or slices, not str
+2025-04-21 16:11:44,994 - calculations - ERROR - Ошибка при расчете стоимости тоннеля: list indices must be integers or slices, not str
+Traceback (most recent call last):
+  File "/Users/shiba/Desktop/bot/calculations.py", line 47, in calculate_tunnel_cost
+    (material for material in materials_db["materials"] if material["name"] == "Лист нержавеющей стали"),
+                              ~~~~~~~~~~~~^^^^^^^^^^^^^
+TypeError: list indices must be integers or slices, not str
+2025-04-21 16:11:44,997 - handlers.manual - ERROR - Ошибка при расчете 'Тоннель': list indices must be integers or slices, not str, chat_id=868381492
+2025-04-21 16:11:44,997 - handlers.manual - ERROR - Ошибка при расчете 'Тоннель': list indices must be integers or slices, not str, chat_id=868381492
