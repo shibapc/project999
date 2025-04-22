@@ -588,3 +588,9 @@ Traceback (most recent call last):
   File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/telegram/request/_httpxrequest.py", line 300, in do_request
     raise NetworkError(f"httpx.{err.__class__.__name__}: {err}") from err
 telegram.error.NetworkError: httpx.ConnectError: [Errno 8] nodename nor servname provided, or not known
+2025-04-22 22:37:09,045 - handlers.manual - ERROR - Неизвестная функция расчета 'calculate_concrete_wall_cost', chat_id=539641125
+2025-04-22 22:37:09,045 - handlers.manual - ERROR - Ошибка при расчете 'Бетонная стена': Ошибка в настройке расчета, chat_id=539641125
+2025-04-22 22:37:23,617 - handlers.manual - ERROR - Неизвестная функция расчета 'calculate_concrete_wall_cost', chat_id=539641125
+2025-04-22 22:37:23,618 - handlers.manual - ERROR - Ошибка при расчете 'Бетонная стена': Ошибка в настройке расчета, chat_id=539641125
+2025-04-22 22:39:17,411 - handlers.manual - ERROR - Неизвестная функция расчета 'calculate_concrete_wall_cost', chat_id=539641125
+2025-04-22 22:39:17,412 - handlers.manual - ERROR - Ошибка при расчете 'Бетонная стена': Ошибка в настройке расчета, chat_id=539641125

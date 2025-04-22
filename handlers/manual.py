@@ -10,12 +10,13 @@ from calculations import (
     calculate_steel_sheet_cost,
     calculate_slide_cost,
     calculate_tunnel_cost,
+    calculate_concrete_wall_cost,
     calculate_price_formula,
     format_calculation_result,
 )
 
 # Настройка логирования
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Маппинг параметров
@@ -25,6 +26,7 @@ PARAM_MAP = {
     "толщина": "thickness_mm",
     "высота": "height_mm",
     "радиус": "radius_mm",
+    "углубление": "deepening_mm",
 }
 
 # Маппинг функций расчёта
@@ -33,6 +35,7 @@ CALC_FUNCTIONS = {
     "calculate_steel_sheet_cost": calculate_steel_sheet_cost,
     "calculate_slide_cost": calculate_slide_cost,
     "calculate_tunnel_cost": calculate_tunnel_cost,
+    "calculate_concrete_wall_cost": calculate_concrete_wall_cost,
 }
 
 async def validate_and_save_param(
@@ -45,7 +48,7 @@ async def validate_and_save_param(
         return False
 
     value = float(text)
-    if param in ["длина", "радиус"] and not (1 <= value <= 100000):
+    if param in ["длина", "ширина", "высота", "радиус", "углубление"] and not (1 <= value <= 100000):
         await update.message.reply_text("Доступны значения только от 1 до 100000.")
         return False
 
@@ -83,6 +86,7 @@ async def calculate_product_cost(
 ) -> dict:
     """Выполнение расчёта стоимости."""
     if not item.get("calculation_function"):
+        logger.warning(f"Нет функции расчёта для '{item['name']}', chat_id={chat_id}")
         return {"общая_стоимость": 0, "количество": quantity}
 
     calc_function = CALC_FUNCTIONS.get(item["calculation_function"])
@@ -90,11 +94,11 @@ async def calculate_product_cost(
         logger.error(
             f"Неизвестная функция расчета '{item['calculation_function']}', chat_id={chat_id}"
         )
-        raise ValueError("Ошибка в настройке расчета")
+        raise ValueError(f"Неизвестная функция расчета: {item['calculation_function']}")
 
     params = {
         PARAM_MAP.get(p, p): product.get(PARAM_MAP.get(p, p), 0)
-        for p in item["parameters"]
+        for p in item.get("parameters", [])
     }
     if item["calculation_function"] != "calculate_slide_cost":
         params["quantity"] = quantity
@@ -103,15 +107,27 @@ async def calculate_product_cost(
         f"Вызов функции '{item['calculation_function']}' с параметрами: {params}, chat_id={chat_id}"
     )
 
-    if item["calculation_function"] == "calculate_tunnel_cost":
-        materials_db = {
-            "materials": materials_manager.get_all_items("materials"),
-            "works": materials_manager.get_all_items("works"),
-            "other": materials_manager.get_all_items("other"),
-            "templates": materials_manager.get_all_items("templates"),
-        }
-        return calc_function(**params, materials_db=materials_db)
-    return calc_function(**params)
+    try:
+        # Проверяем, ожидает ли функция параметр materials_db
+        if item["calculation_function"] == "calculate_tunnel_cost":
+            materials_db = {
+                "materials": materials_manager.get_all_items("materials"),
+                "works": materials_manager.get_all_items("works"),
+                "other": materials_manager.get_all_items("other"),
+                "templates": materials_manager.get_all_items("templates"),
+            }
+            return calc_function(**params, materials_db=materials_db)
+        return calc_function(**params)
+    except TypeError as e:
+        logger.error(
+            f"Ошибка вызова функции '{item['calculation_function']}': {e}, параметры: {params}, chat_id={chat_id}"
+        )
+        raise ValueError(f"Ошибка в параметрах функции расчёта: {e}")
+    except Exception as e:
+        logger.error(
+            f"Ошибка при выполнении '{item['calculation_function']}': {e}, chat_id={chat_id}"
+        )
+        raise
 
 async def get_product_quantity(
     update: Update, context: CallbackContext, user_data: dict
@@ -210,8 +226,8 @@ async def get_product_quantity(
                 product, item, cost_data
             )
 
-            # Выводим только детализированное сообщение для тоннеля
-            if item.get("calculation_function") == "calculate_tunnel_cost":
+            # Выводим только детализированное сообщение для тоннеля и бетонной стены
+            if item.get("calculation_function") in ["calculate_tunnel_cost", "calculate_concrete_wall_cost"]:
                 await update.message.reply_text(
                     message + "Подтвердить или ввести цену?",
                     reply_markup=ReplyKeyboardMarkup(
@@ -239,7 +255,7 @@ async def get_product_quantity(
             logger.error(
                 f"Ошибка при расчете '{product['name']}': {e}, chat_id={chat_id}"
             )
-            await update.message.reply_text("Ошибка расчета. Попробуй снова.")
+            await update.message.reply_text(f"Ошибка расчета: {str(e)}. Попробуй снова.")
             return 5
 
     await update.message.reply_text("Введи число.")

@@ -2942,3 +2942,230 @@ telegram.error.NetworkError: httpx.ConnectError: [Errno 8] nodename nor servname
 2025-04-22 14:56:19,029 - handlers.manual - INFO - Добавлен продукт: {'name': 'Тоннель', 'category': 'Изделия', 'unit': 'шт', 'variable': True, 'parameters': ['радиус', 'длина'], 'calculation_function': 'calculate_tunnel_cost'}
 2025-04-22 14:56:19,235 - calculations - INFO - Расчет стоимости тоннеля: радиус=300.0мм, длина=1800.0мм
 2025-04-22 14:56:19,235 - calculations - INFO - Расчет стоимости тоннеля: радиус=300.0мм, длина=1800.0мм
+2025-04-22 22:36:38,059 - utils.process_manager - INFO - Успешно получена блокировка процесса
+2025-04-22 22:36:38,059 - utils.process_manager - INFO - Обработчики сигналов настроены
+2025-04-22 22:36:38,124 - __main__ - INFO - Бот запущен...
+2025-04-22 22:36:38,805 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getMe "HTTP/1.1 200 OK"
+2025-04-22 22:36:39,003 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/deleteWebhook "HTTP/1.1 200 OK"
+2025-04-22 22:36:39,006 - telegram.ext.Application - INFO - Application started
+2025-04-22 22:36:39,345 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:36:39,346 - __main__ - INFO - Пользователь 539641125 запустил бота
+2025-04-22 22:36:39,546 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:36:42,681 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:36:42,684 - __main__ - INFO - Пользователь 539641125 выбрал метод: Самостоятельно
+2025-04-22 22:36:42,913 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:36:44,472 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:36:44,475 - handlers.manual - INFO - Получение количества листов от пользователя 539641125: 1
+2025-04-22 22:36:44,639 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:36:47,426 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:36:47,430 - handlers.manual - INFO - Получение названий листов от пользователя 539641125
+2025-04-22 22:36:47,700 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:36:49,033 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:36:49,180 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:36:51,004 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:36:51,007 - handlers.manual - INFO - 
+    Обработка выбора: 
+    - Текст: Изделия
+    - Chat ID: 539641125
+    - Material Phase: True
+    - Current Sheet: клумба
+    - Awaiting Param: None
+    
+2025-04-22 22:36:51,201 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:36:53,247 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:36:53,249 - handlers.manual - INFO - 
+    Обработка выбора: 
+    - Текст: Бетонная стена
+    - Chat ID: 539641125
+    - Material Phase: True
+    - Current Sheet: клумба
+    - Awaiting Param: None
+    
+2025-04-22 22:36:53,250 - utils.materials_manager - INFO - Найден элемент 'Бетонная стена' в секции templates
+2025-04-22 22:36:53,250 - handlers.manual - INFO - Добавлен продукт: {'name': 'Бетонная стена', 'category': 'Изделия', 'unit': 'шт', 'variable': True, 'parameters': ['длина', 'ширина', 'высота', 'углубление'], 'calculation_function': 'calculate_concrete_wall_cost'}
+2025-04-22 22:36:53,443 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:36:57,130 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:36:57,320 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:37:00,852 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:37:00,981 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:37:06,720 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:37:07,132 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:37:09,042 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:37:09,045 - handlers.manual - ERROR - Неизвестная функция расчета 'calculate_concrete_wall_cost', chat_id=539641125
+2025-04-22 22:37:09,045 - handlers.manual - ERROR - Ошибка при расчете 'Бетонная стена': Ошибка в настройке расчета, chat_id=539641125
+2025-04-22 22:37:09,228 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:37:19,172 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:37:23,615 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:37:23,617 - handlers.manual - ERROR - Неизвестная функция расчета 'calculate_concrete_wall_cost', chat_id=539641125
+2025-04-22 22:37:23,618 - handlers.manual - ERROR - Ошибка при расчете 'Бетонная стена': Ошибка в настройке расчета, chat_id=539641125
+2025-04-22 22:37:24,041 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:37:33,737 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:37:43,973 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:37:54,081 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:04,199 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:14,340 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:24,459 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:34,581 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:36,204 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:36,581 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:38:38,158 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:38,161 - __main__ - INFO - Пользователь 539641125 запустил бота
+2025-04-22 22:38:38,335 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:38:39,749 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:39,753 - __main__ - INFO - Пользователь 539641125 выбрал метод: Самостоятельно
+2025-04-22 22:38:39,964 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:38:41,641 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:41,644 - handlers.manual - INFO - Получение количества листов от пользователя 539641125: 1
+2025-04-22 22:38:41,866 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:38:44,473 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:44,476 - handlers.manual - INFO - Получение названий листов от пользователя 539641125
+2025-04-22 22:38:44,618 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:38:45,743 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:46,020 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:38:53,762 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:53,766 - handlers.manual - INFO - 
+    Обработка выбора: 
+    - Текст: Изделия
+    - Chat ID: 539641125
+    - Material Phase: True
+    - Current Sheet: клумба
+    - Awaiting Param: None
+    
+2025-04-22 22:38:54,129 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:38:57,061 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:38:57,063 - handlers.manual - INFO - 
+    Обработка выбора: 
+    - Текст: Бетонная стена
+    - Chat ID: 539641125
+    - Material Phase: True
+    - Current Sheet: клумба
+    - Awaiting Param: None
+    
+2025-04-22 22:38:57,064 - utils.materials_manager - INFO - Найден элемент 'Бетонная стена' в секции templates
+2025-04-22 22:38:57,064 - handlers.manual - INFO - Добавлен продукт: {'name': 'Бетонная стена', 'category': 'Изделия', 'unit': 'шт', 'variable': True, 'parameters': ['длина', 'ширина', 'высота', 'углубление'], 'calculation_function': 'calculate_concrete_wall_cost'}
+2025-04-22 22:38:57,192 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:39:01,015 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:39:01,225 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:39:05,020 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:39:05,163 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:39:07,420 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:39:07,553 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:39:17,403 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:39:17,411 - handlers.manual - ERROR - Неизвестная функция расчета 'calculate_concrete_wall_cost', chat_id=539641125
+2025-04-22 22:39:17,412 - handlers.manual - ERROR - Ошибка при расчете 'Бетонная стена': Ошибка в настройке расчета, chat_id=539641125
+2025-04-22 22:39:18,886 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:39:27,535 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:39:38,818 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:39:49,310 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:39:59,682 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:40:09,840 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:40:19,957 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:40:30,067 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:40:40,203 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:40:50,322 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:41:00,462 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:41:10,615 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:41:20,736 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:41:30,857 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:41:40,968 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:41:51,083 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:42:01,197 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:42:11,308 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:42:21,419 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:42:31,531 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:42:41,643 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:42:51,762 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:43:01,875 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:43:11,989 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:43:22,104 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:43:32,256 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:43:42,366 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:43:52,479 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:44:02,590 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:44:12,703 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:44:22,814 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:44:32,929 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:44:43,038 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:44:53,152 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:45:03,266 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:45:13,379 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:45:23,488 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:45:33,597 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:45:43,709 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:45:53,823 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:01,037 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:01,040 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2025-04-22 22:46:01,040 - telegram.ext.Application - INFO - Application.stop() complete
+2025-04-22 22:46:01,044 - utils.process_manager - INFO - Файл блокировки удален
+2025-04-22 22:46:04,359 - utils.process_manager - INFO - Успешно получена блокировка процесса
+2025-04-22 22:46:04,360 - utils.process_manager - INFO - Обработчики сигналов настроены
+2025-04-22 22:46:04,443 - __main__ - INFO - Бот запущен...
+2025-04-22 22:46:04,772 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getMe "HTTP/1.1 200 OK"
+2025-04-22 22:46:04,890 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/deleteWebhook "HTTP/1.1 200 OK"
+2025-04-22 22:46:04,893 - telegram.ext.Application - INFO - Application started
+2025-04-22 22:46:10,909 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:10,912 - __main__ - INFO - Пользователь 539641125 запустил бота
+2025-04-22 22:46:11,302 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:12,632 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:12,635 - __main__ - INFO - Пользователь 539641125 выбрал метод: Самостоятельно
+2025-04-22 22:46:12,769 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:14,292 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:14,295 - handlers.manual - INFO - Получение количества листов от пользователя 539641125: 1
+2025-04-22 22:46:14,538 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:23,106 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:23,109 - handlers.manual - INFO - Получение названий листов от пользователя 539641125
+2025-04-22 22:46:23,479 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:25,494 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:25,678 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:27,188 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:27,191 - handlers.manual - INFO - 
+    Обработка выбора: 
+    - Текст: Изделия
+    - Chat ID: 539641125
+    - Material Phase: True
+    - Current Sheet: сад
+    - Awaiting Param: None
+    
+2025-04-22 22:46:27,366 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:28,794 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:28,797 - handlers.manual - INFO - 
+    Обработка выбора: 
+    - Текст: Бетонная стена
+    - Chat ID: 539641125
+    - Material Phase: True
+    - Current Sheet: сад
+    - Awaiting Param: None
+    
+2025-04-22 22:46:28,798 - utils.materials_manager - INFO - Найден элемент 'Бетонная стена' в секции templates
+2025-04-22 22:46:28,798 - handlers.manual - INFO - Добавлен продукт: {'name': 'Бетонная стена', 'category': 'Изделия', 'unit': 'шт', 'variable': True, 'parameters': ['длина', 'ширина', 'высота', 'углубление'], 'calculation_function': 'calculate_concrete_wall_cost'}
+2025-04-22 22:46:28,955 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:31,633 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:31,836 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:35,144 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:35,294 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:37,590 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:37,774 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:39,630 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:39,633 - calculations - INFO - Расчет стоимости бетонной стены: длина=2000.0мм, ширина=1250.0мм, высота=1250.0мм, углубление=150.0мм
+2025-04-22 22:46:39,778 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:46:49,764 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:46:59,932 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:47:09,988 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:47:10,390 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/sendMessage "HTTP/1.1 200 OK"
+2025-04-22 22:47:20,208 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:47:30,454 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:47:40,636 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:47:50,826 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:48:01,479 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:48:11,714 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:48:21,832 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:48:31,991 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:48:42,149 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:48:52,367 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:49:02,503 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:49:12,625 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:49:22,739 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:49:33,027 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:49:43,264 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:49:53,500 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
+2025-04-22 22:50:03,613 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7122500438:AAEINIEF-lpDS3rPY4EG8gkOKBJl3cQxak8/getUpdates "HTTP/1.1 200 OK"
