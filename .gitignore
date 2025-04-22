@@ -2,3 +2,8 @@ __pycache__/
 venv
 smeta_files
 logs
+.DS_Store
+__pycache__/calculations.cpython-313.pyc
+__pycache__/config.cpython-313.pyc
+logs/bot.log
+logs/errors.log

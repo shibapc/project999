@@ -1,8 +1,18 @@
 import math
 import logging
 from utils.logger_config import setup_logging
+from utils.number_formatter import format_number
 
 logger = logging.getLogger(__name__)
+
+# Маппинг параметров
+PARAM_MAP = {
+    "длина": "length_mm",
+    "ширина": "width_mm",
+    "толщина": "thickness_mm",
+    "высота": "height_mm",
+    "радиус": "radius_mm",
+}
 
 def calculate_board_cost(length_mm: float, width_mm: float, thickness_mm: float, quantity: float = 1) -> dict:
     """Рассчитать стоимость доски."""
@@ -116,6 +126,8 @@ def calculate_tunnel_cost(radius_mm: float, length_mm: float, materials_db: dict
             "стоимость_резки": total_cutting_cost,
             "стоимость_сварки": total_welding_cost,
             "общая_стоимость": total_cost,
+            "радиус": radius_mm,
+            "длина": length_mm
         }
         logger.debug(f"Результат расчета: {result}")
         return result
@@ -123,7 +135,6 @@ def calculate_tunnel_cost(radius_mm: float, length_mm: float, materials_db: dict
     except Exception as e:
         logger.error(f"Ошибка при расчете стоимости тоннеля: {str(e)}", exc_info=True)
         raise
-
 
 def calculate_price_formula(formula: str, products: list) -> float:
     """Рассчитать стоимость по формуле."""
@@ -139,3 +150,60 @@ def calculate_price_formula(formula: str, products: list) -> float:
     except Exception as e:
         logger.error(f"Ошибка в формуле '{formula}': {e}")
         return 0.0
+
+def format_calculation_result(product: dict, item: dict, cost_data: dict) -> tuple:
+    """Формирует сообщения с результатами расчёта в зависимости от функции расчёта."""
+    # Формируем строку с параметрами
+    params_str = ", ".join(
+        f"{p}: {product.get(PARAM_MAP.get(p, p), 0)}" for p in item.get("parameters", [])
+    )
+    
+    # Определяем формат вывода в зависимости от функции расчёта
+    calc_function = item.get("calculation_function", "")
+    match calc_function:
+        case "calculate_tunnel_cost":
+            message = (
+                f"Для '{product['name']}' ({params_str}):\n"
+                f"Количество листов: {cost_data.get('количество_листов', 0)}\n"
+                f"Стоимость материалов: {cost_data.get('стоимость_листов', 0):.0f} ₽\n"
+                f"Стоимость резки: {cost_data.get('стоимость_резки', 0):.0f} ₽\n"
+                f"Стоимость сварки: {cost_data.get('стоимость_сварки', 0):.0f} ₽\n"
+                f"Общая стоимость: {cost_data.get('общая_стоимость', 0):.0f} ₽\n"
+            )
+            result_message = ""  # Не возвращаем краткое сообщение
+        case "calculate_slide_cost":
+            message = (
+                f"Для '{product['name']}' ({params_str}):\n"
+                f"Объём: {cost_data.get('объём_м3', 0):.3f} м³\n"
+                f"Розничная стоимость: {cost_data.get('розничная_стоимость', 0):.0f} ₽\n"
+            )
+            result_message = (
+                f"Название: {product['name']}\n"
+                f"Количество: {format_number(product['quantity'])} {product['unit']}\n"
+                f"Цена за единицу: {format_number(product['price_per_unit'])} ₽\n"
+                f"Итого: {format_number(product['total_cost'])} ₽"
+            )
+        case "calculate_board_cost" | "calculate_steel_sheet_cost":
+            message = (
+                f"Для '{product['name']}' ({params_str}):\n"
+                f"Общая стоимость: {cost_data.get('общая_стоимость', 0):.0f} ₽\n"
+            )
+            result_message = (
+                f"Название: {product['name']}\n"
+                f"Количество: {format_number(product['quantity'])} {product['unit']}\n"
+                f"Цена за единицу: {format_number(product['price_per_unit'])} ₽\n"
+                f"Итого: {format_number(product['total_cost'])} ₽"
+            )
+        case _:
+            message = (
+                f"Для '{product['name']}' ({params_str}):\n"
+                f"Общая стоимость: {cost_data.get('общая_стоимость', 0):.0f} ₽\n"
+            )
+            result_message = (
+                f"Название: {product['name']}\n"
+                f"Количество: {format_number(product['quantity'])} {product['unit']}\n"
+                f"Цена за единицу: {format_number(product['price_per_unit'])} ₽\n"
+                f"Итого: {format_number(product['total_cost'])} ₽"
+            )
+
+    return result_message, message
