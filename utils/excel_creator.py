@@ -2,7 +2,7 @@ import os
 import logging
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
-from logger_config import setup_logging, log_user_state
+from utils.logger_config import setup_logging, log_user_state
 from utils.number_formatter import format_number
 
 # Настройка логирования

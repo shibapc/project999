@@ -1,7 +1,7 @@
 import os
 import sys
 import logging
-from logger_config import setup_logging, log_user_state
+from utils.logger_config import setup_logging, log_user_state
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     Application,
@@ -23,7 +23,6 @@ from handlers.manual import (
     go_back,
 )
 from handlers.ai import handle_ai_mode
-from excel_creator import create_excel  # Изменено, если используется
 from config import BOT_TOKEN
 from utils.materials_manager import materials_manager
 from utils.process_manager import process_manager
@@ -54,10 +53,10 @@ user_data = {}
 async def start_command(update: Update, context: CallbackContext) -> int:
     chat_id = update.message.chat_id
     logger.info(f"Пользователь {chat_id} запустил бота")
-    
+
     # Очищаем кэш при новом старте
     materials_manager.clear_cache()
-    
+
     user_data[chat_id] = {"products": {}, "current_handler": "manual"}
     log_user_state(logger, chat_id, user_data, "Инициализация нового пользователя")
     keyboard = ReplyKeyboardMarkup(
@@ -99,6 +98,7 @@ async def handle_method_selection(update: Update, context: CallbackContext) -> i
         )
         return AI_STATE
     else:
+        logger.warning(f"Некорректный ввод: {text}, chat_id={chat_id}")
         await update.message.reply_text(
             "Пожалуйста, выбери 'Самостоятельно' или 'Через ИИ'.",
             reply_markup=ReplyKeyboardMarkup(
@@ -121,10 +121,9 @@ async def cancel(update: Update, context: CallbackContext) -> int:
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик всех ошибок."""
     logger.error(
-        f"Update {update} вызвал ошибку {context.error}", 
-        exc_info=context.error
+        f"Update {update} вызвал ошибку {context.error}", exc_info=context.error
     )
-    
+
     try:
         if update and update.effective_message:
             await update.effective_message.reply_text(
@@ -142,7 +141,7 @@ def main():
 
     # Настройка обработчиков сигналов
     process_manager.setup_signal_handlers()
-    
+
     application = Application.builder().token(BOT_TOKEN).build()
 
     # Настройка ConversationHandler для управления состояниями

@@ -13,6 +13,7 @@
         "category": "Материалы",
         "unit": "шт",
         "variable": true,
+        "price": 100,
         "parameters": ["длина", "ширина", "толщина"],
         "calculation_function": "calculate_board_cost"
       },
