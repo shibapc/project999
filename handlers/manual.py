@@ -399,7 +399,9 @@ async def show_categories(update: Update, user_data: dict):
         else:
             keyboard.append(
                 [
-                    KeyboardButton("Перейти к формированию сметы и созданию коммерческого предложения"),
+                    KeyboardButton(
+                        "Перейти к формированию сметы и созданию коммерческого предложения"
+                    ),
                 ]
             )
     logger.debug(
@@ -436,7 +438,7 @@ async def get_product_name(
 
     if not material_phase and text in [
         "Переход к следующему листу",
-        "Перейти к формированию сметы",
+        "Перейти к формированию сметы и созданию коммерческого предложения",
     ]:
         return await process_next_product_or_sheet(update, context, user_data)
 
@@ -677,7 +679,7 @@ async def process_next_product_or_sheet(
             )
             await show_categories(update, user_data)
             return 4
-    elif text == "Перейти к формированию сметы":
+    elif text == "Перейти к формированию сметы и созданию коммерческого предложения":
         # Создаём Excel-смету
         excel_file = create_excel(chat_id, user_data)
         if not excel_file:
@@ -687,13 +689,13 @@ async def process_next_product_or_sheet(
             )
             return -1
 
-        # Создаём коммерческое предложение
+        # Создаём коммерческое предложение (PDF)
         try:
-            from utils.commercial_offer.creator import create_commercial_proposal
+            from utils.commercial_offer.creator import create_commercial_proposal_pdf
 
-            cp_file = create_commercial_proposal(chat_id, user_data)
+            cp_file = create_commercial_proposal_pdf(chat_id, user_data)
         except Exception as e:
-            logger.error(f"Не удалось создать КП для chat_id={chat_id}: {str(e)}")
+            logger.error(f"Не удалось создать PDF КП для chat_id={chat_id}: {str(e)}")
             await update.message.reply_text(
                 "Ошибка при создании коммерческого предложения. Попробуй снова."
             )
@@ -712,7 +714,7 @@ async def process_next_product_or_sheet(
             ),
         )
 
-        # Удаляем временные файлы
+        # Удаляем временные файлы (оставляем, так как тебе нравится, что файлы не сохраняются)
         import os
 
         os.remove(excel_file)
