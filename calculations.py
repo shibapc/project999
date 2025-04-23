@@ -137,12 +137,51 @@ def calculate_tunnel_cost(
         raise
 
 def calculate_concrete_wall_cost(
-    length_mm: float, width_mm: float, height_mm: float, deepening_mm: float, quantity: float = 1
+    length_mm: float, width_mm: float, height_mm: float, deepening_mm: float, materials_db: dict, quantity: float = 1
 ) -> dict:
     """Рассчитать стоимость бетонной стены с учётом фундамента, арматуры, опалубки и заливки."""
     logger.info(f"Расчет стоимости бетонной стены: длина={length_mm}мм, ширина={width_mm}мм, высота={height_mm}мм, углубление={deepening_mm}мм")
     try:
         logger.debug("Начало расчета стоимости бетонной стены")
+
+        # Извлечение материалов и работ из materials_db
+        concrete = next(
+            (material for material in materials_db["materials"] if material["name"] == "Бетон"),
+            None
+        )
+        if not concrete:
+            logger.error("Материал 'Бетон' не найден в базе данных.")
+            raise ValueError("Материал 'Бетон' не найден в базе данных.")
+
+        rebar = next(
+            (material for material in materials_db["materials"] if material["name"] == "Арматурная балка"),
+            None
+        )
+        if not rebar:
+            logger.error("Материал 'Арматурная балка' не найден в базе данных.")
+            raise ValueError("Материал 'Арматурная балка' не найден в базе данных.")
+
+        formwork = next(
+            (material for material in materials_db["materials"] if material["name"] == "Опалубка"),
+            None
+        )
+        if not formwork:
+            logger.error("Материал 'Опалубка' не найден в базе данных.")
+            raise ValueError("Материал 'Опалубка' не найден в базе данных.")
+
+        pouring = next(
+            (work for work in materials_db["works"] if work["name"] == "Заливка бетона"),
+            None
+        )
+        if not pouring:
+            logger.error("Работа 'Заливка бетона' не найдена в базе данных.")
+            raise ValueError("Работа 'Заливка бетона' не найдена в базе данных.")
+
+        # Извлечение цен
+        concrete_price_per_m3 = concrete["price"]
+        rebar_price_per_kg = rebar["price"]
+        formwork_price_per_m2 = formwork["price"]
+        pouring_price_per_m3 = pouring["price"]
 
         # Углубление: 150 мм + введённое пользователем значение
         total_deepening_mm = 150 + deepening_mm
@@ -164,23 +203,19 @@ def calculate_concrete_wall_cost(
         # Общий объём бетона
         total_concrete_volume_m3 = wall_volume_m3 + foundation_volume_m3
 
-        # Стоимость бетона (100 руб/м³)
-        concrete_price_per_m3 = 100
+        # Стоимость бетона
         concrete_cost = total_concrete_volume_m3 * concrete_price_per_m3
 
         # Арматура: 100 кг на 1 м³ стены (без фундамента)
         rebar_kg_per_m3 = 100
         rebar_weight_kg = wall_volume_m3 * rebar_kg_per_m3
-        rebar_price_per_kg = 50
         rebar_cost = rebar_weight_kg * rebar_price_per_kg
 
         # Опалубка: площадь боковых поверхностей стены
         side_area_m2 = 2 * (length_mm * wall_height_mm + width_mm * wall_height_mm) / 1_000_000
-        formwork_price_per_m2 = 50  # Предположительная цена за м²
         formwork_cost = side_area_m2 * formwork_price_per_m2
 
-        # Заливка бетона: 100 руб/м³
-        pouring_price_per_m3 = 100
+        # Заливка бетона
         pouring_cost = total_concrete_volume_m3 * pouring_price_per_m3
 
         # Общая стоимость

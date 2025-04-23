@@ -5,6 +5,7 @@ from utils.number_formatter import format_number
 from utils.materials_manager import materials_manager
 import logging
 import os
+import inspect  # Добавлен для динамической проверки сигнатур функций
 from calculations import (
     calculate_board_cost,
     calculate_steel_sheet_cost,
@@ -16,7 +17,9 @@ from calculations import (
 )
 
 # Настройка логирования
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Маппинг параметров
@@ -38,6 +41,7 @@ CALC_FUNCTIONS = {
     "calculate_concrete_wall_cost": calculate_concrete_wall_cost,
 }
 
+
 async def validate_and_save_param(
     update: Update, user_data: dict, product: dict, item: dict, param: str, text: str
 ) -> bool:
@@ -48,12 +52,15 @@ async def validate_and_save_param(
         return False
 
     value = float(text)
-    if param in ["длина", "ширина", "высота", "радиус", "углубление"] and not (1 <= value <= 100000):
+    if param in ["длина", "ширина", "высота", "радиус", "углубление"] and not (
+        1 <= value <= 100000
+    ):
         await update.message.reply_text("Доступны значения только от 1 до 100000.")
         return False
 
     product[PARAM_MAP.get(param, param)] = value
     return True
+
 
 async def handle_param_input(
     update: Update, context: CallbackContext, user_data: dict, product: dict, item: dict
@@ -80,6 +87,7 @@ async def handle_param_input(
 
     user_data[chat_id]["awaiting_param"] = None
     return 0  # Все параметры введены
+
 
 async def calculate_product_cost(
     chat_id: int, product: dict, item: dict, quantity: float
@@ -108,15 +116,19 @@ async def calculate_product_cost(
     )
 
     try:
-        # Проверяем, ожидает ли функция параметр materials_db
-        if item["calculation_function"] == "calculate_tunnel_cost":
-            materials_db = {
-                "materials": materials_manager.get_all_items("materials"),
-                "works": materials_manager.get_all_items("works"),
-                "other": materials_manager.get_all_items("other"),
-                "templates": materials_manager.get_all_items("templates"),
-            }
-            return calc_function(**params, materials_db=materials_db)
+        # Формируем materials_db
+        materials_db = {
+            "materials": materials_manager.get_all_items("materials"),
+            "works": materials_manager.get_all_items("works"),
+            "other": materials_manager.get_all_items("other"),
+            "templates": materials_manager.get_all_items("templates"),
+        }
+
+        # Проверяем, принимает ли функция параметр materials_db
+        signature = inspect.signature(calc_function)
+        if "materials_db" in signature.parameters:
+            params["materials_db"] = materials_db
+
         return calc_function(**params)
     except TypeError as e:
         logger.error(
@@ -128,6 +140,7 @@ async def calculate_product_cost(
             f"Ошибка при выполнении '{item['calculation_function']}': {e}, chat_id={chat_id}"
         )
         raise
+
 
 async def get_product_quantity(
     update: Update, context: CallbackContext, user_data: dict
@@ -227,12 +240,18 @@ async def get_product_quantity(
             )
 
             # Выводим только детализированное сообщение для тоннеля и бетонной стены
-            if item.get("calculation_function") in ["calculate_tunnel_cost", "calculate_concrete_wall_cost"]:
+            if item.get("calculation_function") in [
+                "calculate_tunnel_cost",
+                "calculate_concrete_wall_cost",
+            ]:
                 await update.message.reply_text(
                     message + "Подтвердить или ввести цену?",
                     reply_markup=ReplyKeyboardMarkup(
                         [
-                            [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
+                            [
+                                KeyboardButton("Подтвердить"),
+                                KeyboardButton("Ввести цену"),
+                            ],
                             [KeyboardButton("Назад"), KeyboardButton("/cancel")],
                         ],
                         resize_keyboard=True,
@@ -244,7 +263,10 @@ async def get_product_quantity(
                     message + "Подтвердить или ввести цену?",
                     reply_markup=ReplyKeyboardMarkup(
                         [
-                            [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
+                            [
+                                KeyboardButton("Подтвердить"),
+                                KeyboardButton("Ввести цену"),
+                            ],
                             [KeyboardButton("Назад"), KeyboardButton("/cancel")],
                         ],
                         resize_keyboard=True,
@@ -255,11 +277,14 @@ async def get_product_quantity(
             logger.error(
                 f"Ошибка при расчете '{product['name']}': {e}, chat_id={chat_id}"
             )
-            await update.message.reply_text(f"Ошибка расчета: {str(e)}. Попробуй снова.")
+            await update.message.reply_text(
+                f"Ошибка расчета: {str(e)}. Попробуй снова."
+            )
             return 5
 
     await update.message.reply_text("Введи число.")
     return 5
+
 
 async def get_number_of_sheets(
     update: Update, context: CallbackContext, user_data: dict
@@ -267,9 +292,9 @@ async def get_number_of_sheets(
     """Обработка количества листов."""
     chat_id = update.message.chat_id
     text = update.message.text
-    
+
     logger.info(f"Получение количества листов от пользователя {chat_id}: {text}")
-    
+
     if user_data.get(chat_id, {}).get("current_handler") != "manual":
         await update.message.reply_text("Начни с /start.")
         return 1
@@ -280,9 +305,12 @@ async def get_number_of_sheets(
     user_data[chat_id]["sheet_count"] = int(text)
     await update.message.reply_text(
         "Введи названия листов через запятую (например, Скамейка,Карусель):",
-        reply_markup=ReplyKeyboardMarkup([[KeyboardButton("/cancel")]], resize_keyboard=True),
+        reply_markup=ReplyKeyboardMarkup(
+            [[KeyboardButton("/cancel")]], resize_keyboard=True
+        ),
     )
     return 2
+
 
 async def get_sheet_names_and_quantities(
     update: Update, context: CallbackContext, user_data: dict
@@ -307,6 +335,7 @@ async def get_sheet_names_and_quantities(
     await ask_maf_quantity(update, user_data)
     return 3
 
+
 async def ask_maf_quantity(update: Update, user_data: dict):
     """Запрос количества для листа."""
     chat_id = update.message.chat_id
@@ -317,6 +346,7 @@ async def ask_maf_quantity(update: Update, user_data: dict):
             [[KeyboardButton("/cancel")]], resize_keyboard=True
         ),
     )
+
 
 async def get_maf_quantity(
     update: Update, context: CallbackContext, user_data: dict
@@ -343,6 +373,7 @@ async def get_maf_quantity(
     await show_categories(update, user_data)
     return 4
 
+
 async def show_categories(update: Update, user_data: dict):
     """Показать категории в зависимости от фазы."""
     chat_id = update.message.chat_id
@@ -363,14 +394,12 @@ async def show_categories(update: Update, user_data: dict):
             keyboard.append(
                 [
                     KeyboardButton("Переход к следующему листу"),
-                    KeyboardButton("/cancel"),
                 ]
             )
         else:
             keyboard.append(
                 [
-                    KeyboardButton("Перейти к формированию сметы"),
-                    KeyboardButton("/cancel"),
+                    KeyboardButton("Перейти к формированию сметы и созданию коммерческого предложения"),
                 ]
             )
     logger.debug(
@@ -381,6 +410,7 @@ async def show_categories(update: Update, user_data: dict):
         f"Для листа '{user_data[chat_id]['current_sheet']}' выбери категорию:",
         reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
     )
+
 
 async def get_product_name(
     update: Update, context: CallbackContext, user_data: dict
@@ -530,6 +560,7 @@ async def get_product_name(
         )
         return 6
 
+
 async def get_product_unit(
     update: Update, context: CallbackContext, user_data: dict
 ) -> int:
@@ -625,6 +656,7 @@ async def get_product_unit(
         )
         return 6
 
+
 async def process_next_product_or_sheet(
     update: Update, context: CallbackContext, user_data: dict
 ) -> int:
@@ -646,6 +678,7 @@ async def process_next_product_or_sheet(
             await show_categories(update, user_data)
             return 4
     elif text == "Перейти к формированию сметы":
+        # Создаём Excel-смету
         excel_file = create_excel(chat_id, user_data)
         if not excel_file:
             logger.error(f"Не удалось создать Excel-файл для chat_id={chat_id}")
@@ -653,19 +686,43 @@ async def process_next_product_or_sheet(
                 "Ошибка при создании сметы. Попробуй снова."
             )
             return -1
-        await update.message.reply_text(
+
+        # Создаём коммерческое предложение
+        try:
+            from utils.commercial_offer.creator import create_commercial_proposal
+
+            cp_file = create_commercial_proposal(chat_id, user_data)
+        except Exception as e:
+            logger.error(f"Не удалось создать КП для chat_id={chat_id}: {str(e)}")
+            await update.message.reply_text(
+                "Ошибка при создании коммерческого предложения. Попробуй снова."
+            )
+            return -1
+
+        # Отправляем оба документа
+        await update.message.reply_document(
             document=open(excel_file, "rb"),
             caption="Вот твоя смета!",
+        )
+        await update.message.reply_document(
+            document=open(cp_file, "rb"),
+            caption="Вот твоё коммерческое предложение!",
             reply_markup=ReplyKeyboardMarkup(
                 [[KeyboardButton("/start")]], resize_keyboard=True
             ),
         )
+
+        # Удаляем временные файлы
+        import os
+
         os.remove(excel_file)
+        os.remove(cp_file)
         return -1
 
     await update.message.reply_text("Некорректный выбор. Попробуй снова.")
     await show_categories(update, user_data)
     return 4
+
 
 async def go_back(update: Update, context: CallbackContext, user_data: dict) -> int:
     """Обработка 'Назад'."""
