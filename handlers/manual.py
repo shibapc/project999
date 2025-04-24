@@ -689,13 +689,13 @@ async def process_next_product_or_sheet(
             )
             return -1
 
-        # Создаём коммерческое предложение (PDF)
+        # Создаём коммерческое предложение (DOCX)
         try:
-            from utils.commercial_offer.creator import create_commercial_proposal_pdf
+            from utils.commercial_offer.creator import create_commercial_proposal_docx
 
-            cp_file = create_commercial_proposal_pdf(chat_id, user_data)
+            cp_file = create_commercial_proposal_docx(chat_id, user_data)
         except Exception as e:
-            logger.error(f"Не удалось создать PDF КП для chat_id={chat_id}: {str(e)}")
+            logger.error(f"Не удалось создать DOCX КП для chat_id={chat_id}: {str(e)}")
             await update.message.reply_text(
                 "Ошибка при создании коммерческого предложения. Попробуй снова."
             )
@@ -714,9 +714,7 @@ async def process_next_product_or_sheet(
             ),
         )
 
-        # Удаляем временные файлы (оставляем, так как тебе нравится, что файлы не сохраняются)
-        import os
-
+        # Удаляем временные файлы
         os.remove(excel_file)
         os.remove(cp_file)
         return -1
@@ -724,7 +722,6 @@ async def process_next_product_or_sheet(
     await update.message.reply_text("Некорректный выбор. Попробуй снова.")
     await show_categories(update, user_data)
     return 4
-
 
 async def go_back(update: Update, context: CallbackContext, user_data: dict) -> int:
     """Обработка 'Назад'."""

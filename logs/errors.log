@@ -594,3 +594,51 @@ telegram.error.NetworkError: httpx.ConnectError: [Errno 8] nodename nor servname
 2025-04-22 22:37:23,618 - handlers.manual - ERROR - Ошибка при расчете 'Бетонная стена': Ошибка в настройке расчета, chat_id=539641125
 2025-04-22 22:39:17,411 - handlers.manual - ERROR - Неизвестная функция расчета 'calculate_concrete_wall_cost', chat_id=539641125
 2025-04-22 22:39:17,412 - handlers.manual - ERROR - Ошибка при расчете 'Бетонная стена': Ошибка в настройке расчета, chat_id=539641125
+2025-04-24 12:13:54,307 - handlers.manual - ERROR - Не удалось создать PDF КП для chat_id=539641125: cannot import name 'create_commercial_proposal_pdf' from 'utils.commercial_offer.creator' (/Users/shiba/Desktop/bot/utils/commercial_offer/creator.py)
+2025-04-24 12:16:52,820 - handlers.manual - ERROR - Не удалось создать PDF КП для chat_id=539641125: cannot import name 'create_commercial_proposal_pdf' from 'utils.commercial_offer.creator' (/Users/shiba/Desktop/bot/utils/commercial_offer/creator.py)
+2025-04-24 12:17:36,710 - utils.commercial_offer.creator - ERROR - Ошибка при создании DOCX КП: 
+Traceback (most recent call last):
+  File "/Users/shiba/Desktop/bot/utils/commercial_offer/creator.py", line 59, in create_commercial_proposal_docx
+    logo_run.add_picture(logo_path, width=Mm(40))
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shiba/Desktop/bot/venv/lib/python3.13/site-packages/docx/text/run.py", line 79, in add_picture
+    inline = self.part.new_pic_inline(image_path_or_stream, width, height)
+  File "/Users/shiba/Desktop/bot/venv/lib/python3.13/site-packages/docx/parts/story.py", line 71, in new_pic_inline
+    rId, image = self.get_or_add_image(image_descriptor)
+                 ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/shiba/Desktop/bot/venv/lib/python3.13/site-packages/docx/parts/story.py", line 37, in get_or_add_image
+    image_part = package.get_or_add_image_part(image_descriptor)
+  File "/Users/shiba/Desktop/bot/venv/lib/python3.13/site-packages/docx/package.py", line 31, in get_or_add_image_part
+    return self.image_parts.get_or_add_image_part(image_descriptor)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/shiba/Desktop/bot/venv/lib/python3.13/site-packages/docx/package.py", line 74, in get_or_add_image_part
+    image = Image.from_file(image_descriptor)
+  File "/Users/shiba/Desktop/bot/venv/lib/python3.13/site-packages/docx/image/image.py", line 50, in from_file
+    return cls._from_stream(stream, blob, filename)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shiba/Desktop/bot/venv/lib/python3.13/site-packages/docx/image/image.py", line 162, in _from_stream
+    image_header = _ImageHeaderFactory(stream)
+  File "/Users/shiba/Desktop/bot/venv/lib/python3.13/site-packages/docx/image/image.py", line 182, in _ImageHeaderFactory
+    raise UnrecognizedImageError
+docx.image.exceptions.UnrecognizedImageError
+2025-04-24 12:17:36,712 - handlers.manual - ERROR - Не удалось создать PDF КП для chat_id=539641125: 
+2025-04-24 12:22:17,947 - utils.commercial_offer.creator - ERROR - Ошибка при загрузке логотипа: 
+2025-04-24 12:22:17,950 - utils.commercial_offer.creator - ERROR - Ошибка при создании DOCX КП: 'CT_TcPr' object has no attribute 'tcMar'
+Traceback (most recent call last):
+  File "/Users/shiba/Desktop/bot/utils/commercial_offer/creator.py", line 144, in create_commercial_proposal_docx
+    header_cells[i]._element.tcPr.tcMar.left.w = 100  # Отступы внутри ячейки
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CT_TcPr' object has no attribute 'tcMar'
+2025-04-24 12:22:17,952 - handlers.manual - ERROR - Не удалось создать DOCX КП для chat_id=539641125: 'CT_TcPr' object has no attribute 'tcMar'
+2025-04-24 12:25:20,777 - utils.commercial_offer.creator - ERROR - Ошибка при загрузке логотипа: 
+2025-04-24 12:25:20,780 - utils.commercial_offer.creator - ERROR - Ошибка при создании DOCX КП: list index out of range
+Traceback (most recent call last):
+  File "/Users/shiba/Desktop/bot/utils/commercial_offer/creator.py", line 168, in create_commercial_proposal_docx
+    header_cells[i]._element.tcPr.xpath(f'./w:tcBorders/w:{border}')[0].set(qn('w:val'), 'single')
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range
+2025-04-24 12:25:20,781 - handlers.manual - ERROR - Не удалось создать DOCX КП для chat_id=539641125: list index out of range
+2025-04-24 12:28:34,729 - utils.commercial_offer.creator - ERROR - Ошибка при загрузке логотипа: 
+2025-04-24 12:33:40,617 - handlers.manual - ERROR - Не удалось создать DOCX КП для chat_id=539641125: invalid syntax (creator.py, line 145)
+2025-04-24 12:35:12,092 - utils.commercial_offer.creator - ERROR - Неизвестная ошибка при загрузке логотипа: 
+2025-04-24 12:48:04,753 - handlers.manual - ERROR - Элемент 'Подтвердить' не найден, chat_id=539641125

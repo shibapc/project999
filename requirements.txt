@@ -3,3 +3,4 @@ openpyxl==3.1.2
 pytest
 pytest-asyncio
 reportlab
+python-docx
