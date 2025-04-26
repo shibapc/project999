@@ -201,9 +201,10 @@ def create_commercial_proposal_docx(chat_id: int, user_data: dict, output_dir: s
                 cells = table.rows[row_idx].cells
                 cells[0].text = name
                 cells[1].text = unit
-                cells[2].text = f"{price:,.0f}"
+                cells[2].text = f"{price:,.0f}".replace(',', '.')
                 cells[3].text = str(qty)
-                cells[4].text = f"{total:,.0f}"
+                cells[4].text = f"{total:,.0f}".replace(',','.')
+                
 
                 for i in range(5):
                     p = cells[i].paragraphs[0]
@@ -221,7 +222,7 @@ def create_commercial_proposal_docx(chat_id: int, user_data: dict, output_dir: s
         # Итоговая строка
         total_cells = table.rows[row_idx].cells
         total_cells[3].text = "Общая стоимость, руб."
-        total_cells[4].text = f"{total_cost:,.0f}"
+        total_cells[4].text = f"{total_cost:,.0f}".replace(',','.')
         for i in [3, 4]:
             p = total_cells[i].paragraphs[0]
             run = p.runs[0]

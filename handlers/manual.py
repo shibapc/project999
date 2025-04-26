@@ -3,18 +3,9 @@ from telegram.ext import CallbackContext
 from utils.excel_creator import create_excel
 from utils.number_formatter import format_number
 from utils.materials_manager import materials_manager
+from calculations import calculate_product_cost
 import logging
 import os
-import inspect  # Добавлен для динамической проверки сигнатур функций
-from calculations import (
-    calculate_board_cost,
-    calculate_steel_sheet_cost,
-    calculate_slide_cost,
-    calculate_tunnel_cost,
-    calculate_concrete_wall_cost,
-    calculate_price_formula,
-    format_calculation_result,
-)
 
 # Настройка логирования
 logging.basicConfig(
@@ -22,45 +13,41 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Маппинг параметров
-PARAM_MAP = {
-    "длина": "length_mm",
-    "ширина": "width_mm",
-    "толщина": "thickness_mm",
-    "высота": "height_mm",
-    "радиус": "radius_mm",
-    "углубление": "deepening_mm",
-}
-
-# Маппинг функций расчёта
-CALC_FUNCTIONS = {
-    "calculate_board_cost": calculate_board_cost,
-    "calculate_steel_sheet_cost": calculate_steel_sheet_cost,
-    "calculate_slide_cost": calculate_slide_cost,
-    "calculate_tunnel_cost": calculate_tunnel_cost,
-    "calculate_concrete_wall_cost": calculate_concrete_wall_cost,
-}
-
-
 async def validate_and_save_param(
-    update: Update, user_data: dict, product: dict, item: dict, param: str, text: str
+    update: Update, user_data: dict, product: dict, item: dict, param: dict, text: str
 ) -> bool:
-    """Валидация и сохранение параметра."""
+    """Валидация и сохранение параметра на основе JSON."""
     chat_id = update.message.chat_id
-    if not text.replace(".", "", 1).isdigit():
-        await update.message.reply_text(f"Введи число для {param}.")
+    param_name = param["name"]
+    param_key = param["key"]
+    param_type = param["type"]
+    param_min = param["min"]
+    param_max = param["max"]
+
+    # Проверка типа
+    try:
+        if param_type == "float":
+            if not text.replace(".", "", 1).isdigit():
+                await update.message.reply_text(f"Введи число для {param_name}.")
+                return False
+            value = float(text)
+        else:
+            logger.error(f"Неизвестный тип параметра '{param_type}' для {param_name}")
+            await update.message.reply_text(f"Ошибка: неизвестный тип параметра.")
+            return False
+    except ValueError:
+        await update.message.reply_text(f"Введи корректное число для {param_name}.")
         return False
 
-    value = float(text)
-    if param in ["длина", "ширина", "высота", "радиус", "углубление"] and not (
-        1 <= value <= 100000
-    ):
-        await update.message.reply_text("Доступны значения только от 1 до 100000.")
+    # Проверка диапазона
+    if not (param_min <= value <= param_max):
+        await update.message.reply_text(
+            f"Значение для {param_name} должно быть от {param_min} до {param_max}."
+        )
         return False
 
-    product[PARAM_MAP.get(param, param)] = value
+    product[param_key] = value
     return True
-
 
 async def handle_param_input(
     update: Update, context: CallbackContext, user_data: dict, product: dict, item: dict
@@ -73,12 +60,12 @@ async def handle_param_input(
     if not await validate_and_save_param(update, user_data, product, item, param, text):
         return 5
 
-    current_param_index = item["parameters"].index(param)
+    current_param_index = [p["name"] for p in item["parameters"]].index(param["name"])
     if current_param_index + 1 < len(item["parameters"]):
         next_param = item["parameters"][current_param_index + 1]
         user_data[chat_id]["awaiting_param"] = next_param
         await update.message.reply_text(
-            f"Укажи {next_param} для '{product['name']}':",
+            next_param["prompt"],
             reply_markup=ReplyKeyboardMarkup(
                 [[KeyboardButton("/cancel")]], resize_keyboard=True
             ),
@@ -88,59 +75,59 @@ async def handle_param_input(
     user_data[chat_id]["awaiting_param"] = None
     return 0  # Все параметры введены
 
+async def format_calculation_result(product: dict, item: dict, cost_data: dict) -> str:
+    """Форматирование результатов расчета на основе деталей."""
+    params_str = ", ".join(
+        f"{p['name']}: {product.get(p['key'], 0)}"
+        for p in item.get("parameters", [])
+    )
+    message = f"Для '{product['name']}' ({params_str}):\n"
 
-async def calculate_product_cost(
-    chat_id: int, product: dict, item: dict, quantity: float
+    calc_type = item.get("calculation", {}).get("type", "base_price")
+    details = cost_data.get("детали", {})
+
+    if calc_type == "base_price":
+        message += f"Общая стоимость: {cost_data.get('общая_стоимость', 0):.0f} ₽\n"
+    elif calc_type == "volume":
+        message += f"Объём: {details.get('объём_м3', 0):.3f} м³\n"
+        message += f"Розничная стоимость: {cost_data.get('общая_стоимость', 0):.0f} ₽\n"
+    elif calc_type == "complex":
+        for key, value in details.items():
+            if key.startswith("материал_") or key.startswith("работа_"):
+                name = key.replace("материал_", "").replace("работа_", "")
+                message += f"{name}: {value.get('количество', 0):.2f} {item.get('unit', 'шт')}, "
+                message += f"стоимость: {value.get('стоимость', 0):.0f} ₽\n"
+            elif key in ["объём_стены_м3", "объём_фундамента_м3", "общий_объём_бетона_м3", "площадь_опалубки_м2"]:
+                message += f"{key}: {value:.3f} {key.split('_')[-1]}\n"
+            elif key in ["масса_арматуры_кг"]:
+                message += f"{key}: {value:.0f} кг\n"
+        message += f"Общая стоимость: {cost_data.get('общая_стоимость', 0):.0f} ₽\n"
+    elif calc_type == "price_formula":
+        message += f"Общая стоимость: {cost_data.get('общая_стоимость', 0):.0f} ₽\n"
+
+    return message
+
+async def calculate_product_cost_wrapper(
+    chat_id: int, user_data: dict, product: dict, item: dict, quantity: float
 ) -> dict:
-    """Выполнение расчёта стоимости."""
-    if not item.get("calculation_function"):
-        logger.warning(f"Нет функции расчёта для '{item['name']}', chat_id={chat_id}")
-        return {"общая_стоимость": 0, "количество": quantity}
-
-    calc_function = CALC_FUNCTIONS.get(item["calculation_function"])
-    if not calc_function:
-        logger.error(
-            f"Неизвестная функция расчета '{item['calculation_function']}', chat_id={chat_id}"
-        )
-        raise ValueError(f"Неизвестная функция расчета: {item['calculation_function']}")
-
+    """Обертка для вызова calculate_product_cost."""
     params = {
-        PARAM_MAP.get(p, p): product.get(PARAM_MAP.get(p, p), 0)
+        p["key"]: product.get(p["key"], 0)
         for p in item.get("parameters", [])
     }
-    if item["calculation_function"] != "calculate_slide_cost":
-        params["quantity"] = quantity
+    params["quantity"] = quantity
 
-    logger.debug(
-        f"Вызов функции '{item['calculation_function']}' с параметрами: {params}, chat_id={chat_id}"
-    )
+    if item.get("calculation", {}).get("type") == "price_formula":
+        all_products = []
+        for sheet_products in user_data[chat_id]["products"].values():
+            all_products.extend(sheet_products)
+        params["all_products"] = all_products
 
     try:
-        # Формируем materials_db
-        materials_db = {
-            "materials": materials_manager.get_all_items("materials"),
-            "works": materials_manager.get_all_items("works"),
-            "other": materials_manager.get_all_items("other"),
-            "templates": materials_manager.get_all_items("templates"),
-        }
-
-        # Проверяем, принимает ли функция параметр materials_db
-        signature = inspect.signature(calc_function)
-        if "materials_db" in signature.parameters:
-            params["materials_db"] = materials_db
-
-        return calc_function(**params)
-    except TypeError as e:
-        logger.error(
-            f"Ошибка вызова функции '{item['calculation_function']}': {e}, параметры: {params}, chat_id={chat_id}"
-        )
-        raise ValueError(f"Ошибка в параметрах функции расчёта: {e}")
+        return calculate_product_cost(item, params, quantity)
     except Exception as e:
-        logger.error(
-            f"Ошибка при выполнении '{item['calculation_function']}': {e}, chat_id={chat_id}"
-        )
+        logger.error(f"Ошибка при расчете '{product['name']}': {e}, chat_id={chat_id}")
         raise
-
 
 async def get_product_quantity(
     update: Update, context: CallbackContext, user_data: dict
@@ -155,7 +142,8 @@ async def get_product_quantity(
     )
 
     # Поиск элемента
-    item = materials_manager.get_item(product["name"], product["category"].lower())
+    section = materials_manager.get_category_key(product["category"])
+    item = materials_manager.get_item(product["name"], section)
     if not item:
         logger.error(f"Элемент '{product['name']}' не найден, chat_id={chat_id}")
         await update.message.reply_text("Ошибка. Начни заново с /start.")
@@ -187,29 +175,30 @@ async def get_product_quantity(
             await update.message.reply_text("Введи число.")
             return 5
         product["quantity"] = float(text)
-        item_data = materials_manager.get_item(
-            product["name"], product["category"].lower()
-        )
-        if item_data and "price_formula" in item_data:
-            all_products = []
-            for sheet_products in user_data[chat_id]["products"].values():
-                all_products.extend(sheet_products)
-            product["price_per_unit"] = calculate_price_formula(
-                item_data["price_formula"], all_products
+        try:
+            cost_data = await calculate_product_cost_wrapper(
+                chat_id, user_data, product, item, product["quantity"]
             )
-        user_data[chat_id]["has_non_material"] = True
-        await update.message.reply_text(
-            f"Цена за единицу для '{product['name']}' ({product['unit']}): {product['price_per_unit']:.0f} ₽.\n"
-            f"Подтвердить или ввести цену?",
-            reply_markup=ReplyKeyboardMarkup(
-                [
-                    [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
-                    [KeyboardButton("Назад"), KeyboardButton("/cancel")],
-                ],
-                resize_keyboard=True,
-            ),
-        )
-        return 6
+            product["price_per_unit"] = cost_data["общая_стоимость"] / product["quantity"]
+            product["total_cost"] = cost_data["общая_стоимость"]
+            user_data[chat_id]["has_non_material"] = True
+            message = await format_calculation_result(product, item, cost_data)
+            await update.message.reply_text(
+                f"{message}Цена за единицу: {product['price_per_unit']:.0f} ₽.\n"
+                f"Подтвердить или ввести цену?",
+                reply_markup=ReplyKeyboardMarkup(
+                    [
+                        [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
+                        [KeyboardButton("Назад"), KeyboardButton("/cancel")],
+                    ],
+                    resize_keyboard=True,
+                ),
+            )
+            return 6
+        except Exception as e:
+            logger.error(f"Ошибка при расчете: {e}, chat_id={chat_id}")
+            await update.message.reply_text(f"Ошибка расчета: {str(e)}. Попробуй снова.")
+            return 5
 
     # Обработка количества для остальных категорий
     if user_data[chat_id].get("awaiting_quantity"):
@@ -220,71 +209,30 @@ async def get_product_quantity(
         user_data[chat_id]["awaiting_quantity"] = False
         product["quantity"] = quantity
 
-    # Расчёт стоимости (только для категорий, не являющихся "Работы" или "Доставка")
-    if product["category"] not in ["Работы", "Доставка"]:
-        try:
-            cost_data = await calculate_product_cost(
-                chat_id, product, item, product["quantity"]
-            )
-            product["quantity"] = cost_data.get("количество", product["quantity"])
-            if item.get("calculation_function") == "calculate_slide_cost":
-                product["price_per_unit"] = cost_data.get("розничная_стоимость", 0)
-            else:
-                product["price_per_unit"] = (
-                    cost_data.get("общая_стоимость", 0) / product["quantity"]
-                )
-
-            product["total_cost"] = product["quantity"] * product["price_per_unit"]
-            result_message, message = format_calculation_result(
-                product, item, cost_data
-            )
-
-            # Выводим только детализированное сообщение для тоннеля и бетонной стены
-            if item.get("calculation_function") in [
-                "calculate_tunnel_cost",
-                "calculate_concrete_wall_cost",
-            ]:
-                await update.message.reply_text(
-                    message + "Подтвердить или ввести цену?",
-                    reply_markup=ReplyKeyboardMarkup(
-                        [
-                            [
-                                KeyboardButton("Подтвердить"),
-                                KeyboardButton("Ввести цену"),
-                            ],
-                            [KeyboardButton("Назад"), KeyboardButton("/cancel")],
-                        ],
-                        resize_keyboard=True,
-                    ),
-                )
-            else:
-                await update.message.reply_text(result_message)
-                await update.message.reply_text(
-                    message + "Подтвердить или ввести цену?",
-                    reply_markup=ReplyKeyboardMarkup(
-                        [
-                            [
-                                KeyboardButton("Подтвердить"),
-                                KeyboardButton("Ввести цену"),
-                            ],
-                            [KeyboardButton("Назад"), KeyboardButton("/cancel")],
-                        ],
-                        resize_keyboard=True,
-                    ),
-                )
-            return 6
-        except Exception as e:
-            logger.error(
-                f"Ошибка при расчете '{product['name']}': {e}, chat_id={chat_id}"
-            )
-            await update.message.reply_text(
-                f"Ошибка расчета: {str(e)}. Попробуй снова."
-            )
-            return 5
-
-    await update.message.reply_text("Введи число.")
-    return 5
-
+    # Расчёт стоимости
+    try:
+        cost_data = await calculate_product_cost_wrapper(
+            chat_id, user_data, product, item, product["quantity"]
+        )
+        product["price_per_unit"] = cost_data["общая_стоимость"] / product["quantity"]
+        product["total_cost"] = cost_data["общая_стоимость"]
+        product["объём_м3"] = cost_data["детали"].get("объём_м3", 0)
+        message = await format_calculation_result(product, item, cost_data)
+        await update.message.reply_text(
+            f"{message}Подтвердить или ввести цену?",
+            reply_markup=ReplyKeyboardMarkup(
+                [
+                    [KeyboardButton("Подтвердить"), KeyboardButton("Ввести цену")],
+                    [KeyboardButton("Назад"), KeyboardButton("/cancel")],
+                ],
+                resize_keyboard=True,
+            ),
+        )
+        return 6
+    except Exception as e:
+        logger.error(f"Ошибка при расчете: {e}, chat_id={chat_id}")
+        await update.message.reply_text(f"Ошибка расчета: {str(e)}. Попробуй снова.")
+        return 5
 
 async def get_number_of_sheets(
     update: Update, context: CallbackContext, user_data: dict
@@ -311,7 +259,6 @@ async def get_number_of_sheets(
     )
     return 2
 
-
 async def get_sheet_names_and_quantities(
     update: Update, context: CallbackContext, user_data: dict
 ) -> int:
@@ -335,7 +282,6 @@ async def get_sheet_names_and_quantities(
     await ask_maf_quantity(update, user_data)
     return 3
 
-
 async def ask_maf_quantity(update: Update, user_data: dict):
     """Запрос количества для листа."""
     chat_id = update.message.chat_id
@@ -346,7 +292,6 @@ async def ask_maf_quantity(update: Update, user_data: dict):
             [[KeyboardButton("/cancel")]], resize_keyboard=True
         ),
     )
-
 
 async def get_maf_quantity(
     update: Update, context: CallbackContext, user_data: dict
@@ -368,11 +313,9 @@ async def get_maf_quantity(
         await ask_maf_quantity(update, user_data)
         return 3
     user_data[chat_id]["current_sheet"] = sheets[0]
-    user_data[chat_id]["material_phase"] = True
-    user_data[chat_id]["has_non_material"] = False
+    user_data[chat_id]["material_phase"] = "material"
     await show_categories(update, user_data)
     return 4
-
 
 async def show_categories(update: Update, user_data: dict):
     """Показать категории в зависимости от фазы."""
@@ -380,39 +323,28 @@ async def show_categories(update: Update, user_data: dict):
     current_sheet = user_data[chat_id].get("current_sheet", "<не задан>")
     sheets = user_data[chat_id].get("sheets", [])
     material_phase = user_data[chat_id]["material_phase"]
-    categories = ["Материалы", "Изделия"] if material_phase else ["Работы", "Доставка"]
-    keyboard = [[KeyboardButton(cat)] for cat in categories]
-    if material_phase:
+    categories = materials_manager.get_categories_by_phase(material_phase)
+    keyboard = [[KeyboardButton(cat["name"])] for cat in categories]
+    if material_phase == "material":
         keyboard.append(
             [KeyboardButton("Завершить выбор материалов"), KeyboardButton("/cancel")]
         )
     else:
-        sheets = user_data[chat_id]["sheets"]
-        current_sheet = user_data[chat_id]["current_sheet"]
         current_index = sheets.index(current_sheet)
         if current_index + 1 < len(sheets):
-            keyboard.append(
-                [
-                    KeyboardButton("Переход к следующему листу"),
-                ]
-            )
+            keyboard.append([KeyboardButton("Переход к следующему листу")])
         else:
             keyboard.append(
-                [
-                    KeyboardButton(
-                        "Перейти к формированию сметы и созданию коммерческого предложения"
-                    ),
-                ]
+                [KeyboardButton("Перейти к формированию сметы и созданию коммерческого предложения")]
             )
     logger.debug(
-        f"show_categories: material_phase={material_phase}, has_non_material={user_data[chat_id]['has_non_material']}, "
-        f"current_sheet={current_sheet}, sheets={sheets}, keyboard={keyboard}, chat_id={chat_id}"
+        f"show_categories: material_phase={material_phase}, current_sheet={current_sheet}, "
+        f"sheets={sheets}, keyboard={keyboard}, chat_id={chat_id}"
     )
     await update.message.reply_text(
-        f"Для листа '{user_data[chat_id]['current_sheet']}' выбери категорию:",
+        f"Для листа '{current_sheet}' выбери категорию:",
         reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
     )
-
 
 async def get_product_name(
     update: Update, context: CallbackContext, user_data: dict
@@ -423,60 +355,41 @@ async def get_product_name(
     material_phase = user_data[chat_id]["material_phase"]
     logger.debug(
         f"get_product_name: text='{text}', material_phase={material_phase}, "
-        f"has_non_material={user_data[chat_id]['has_non_material']}, chat_id={chat_id}"
-    )
-    logger.info(
-        f"""
-    Обработка выбора: 
-    - Текст: {text}
-    - Chat ID: {chat_id}
-    - Material Phase: {material_phase}
-    - Current Sheet: {user_data[chat_id].get('current_sheet')}
-    - Awaiting Param: {user_data[chat_id].get('awaiting_param')}
-    """
+        f"chat_id={chat_id}"
     )
 
-    if not material_phase and text in [
+    if material_phase != "material" and text in [
         "Переход к следующему листу",
         "Перейти к формированию сметы и созданию коммерческого предложения",
     ]:
         return await process_next_product_or_sheet(update, context, user_data)
 
-    if text == "Завершить выбор материалов" and material_phase:
-        user_data[chat_id]["material_phase"] = False
+    if text == "Завершить выбор материалов" and material_phase == "material":
+        user_data[chat_id]["material_phase"] = "non_material"
         logger.debug(
-            f"Завершение выбора материалов, переход к Работы/Доставка, chat_id={chat_id}"
+            f"Завершение выбора материалов, переход к non_material, chat_id={chat_id}"
         )
         await show_categories(update, user_data)
         return 4
 
-    if text in ["Материалы", "Работы", "Доставка"]:
-        if (material_phase and text != "Материалы") or (
-            not material_phase and text == "Материалы"
-        ):
+    # Проверка, является ли текст категорией
+    category_key = materials_manager.get_category_key(text)
+    if category_key:
+        categories = materials_manager.get_categories_by_phase(material_phase)
+        if not any(cat["name"] == text for cat in categories):
             logger.debug(
                 f"Недоступная категория '{text}', material_phase={material_phase}, chat_id={chat_id}"
             )
             await update.message.reply_text("Недоступная категория.")
             await show_categories(update, user_data)
             return 4
-        items = (
-            materials_manager.get_all_items("materials")
-            if text == "Материалы"
-            else (
-                materials_manager.get_all_items("works")
-                if text == "Работы"
-                else materials_manager.get_all_items("other")
-            )
-        )
+        items = materials_manager.get_all_items(category_key)
         keyboard = [[KeyboardButton(item["name"])] for item in items]
         keyboard.append(
             [
-                (
-                    KeyboardButton("Завершить выбор материалов")
-                    if material_phase
-                    else KeyboardButton("/cancel")
-                )
+                KeyboardButton("Завершить выбор материалов")
+                if material_phase == "material"
+                else KeyboardButton("/cancel")
             ]
         )
         logger.debug(
@@ -488,36 +401,13 @@ async def get_product_name(
         )
         return 4
 
-    if text == "Изделия":
-        try:
-            templates = materials_manager.get_all_items("templates")
-            if not templates:
-                logger.warning("Секция templates пуста")
-                await update.message.reply_text("Список изделий пуст")
-                return 4
-            keyboard = [[KeyboardButton(template["name"])] for template in templates]
-            keyboard.append([KeyboardButton("/cancel")])
-            markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-            user_data[chat_id]["selecting_template"] = True
-            await update.message.reply_text("Выбери изделие:", reply_markup=markup)
-            return 4
-        except Exception as e:
-            logger.error(f"Ошибка при получении списка изделий: {e}")
-            await update.message.reply_text("Произошла ошибка. Попробуйте снова.")
-            return 4
-
-    item = None
-    if user_data[chat_id].get("selecting_template"):
-        item = materials_manager.get_item(text, "templates")
-        user_data[chat_id]["selecting_template"] = False
-    else:
-        if material_phase:
-            item = materials_manager.get_item(text, "materials")
-        else:
-            item = materials_manager.get_item(
-                text, "works"
-            ) or materials_manager.get_item(text, "other")
-
+    # Поиск элемента
+    section = None
+    for cat in materials_manager.get_categories_by_phase(material_phase):
+        section = materials_manager.get_category_key(cat["name"])
+        item = materials_manager.get_item(text, section)
+        if item:
+            break
     if not item:
         logger.error(f"Элемент '{text}' не найден, chat_id={chat_id}")
         await show_categories(update, user_data)
@@ -534,20 +424,18 @@ async def get_product_name(
 
     product = {
         "name": item["name"],
-        "category": item.get("category", ""),
-        "unit": item.get("unit", "шт"),
+        "category": item["category"],
+        "unit": item["unit"],
         "variable": item.get("variable", False),
         "parameters": item.get("parameters", []),
-        "calculation_function": item.get("calculation_function", None),
     }
-
     user_data[chat_id]["products"][current_sheet].append(product)
     logger.info(f"Добавлен продукт: {product}")
 
     if product["variable"] and product["parameters"]:
         user_data[chat_id]["awaiting_param"] = product["parameters"][0]
         await update.message.reply_text(
-            f"Укажи {product['parameters'][0]} для '{product['name']}':",
+            product["parameters"][0]["prompt"],
             reply_markup=ReplyKeyboardMarkup(
                 [[KeyboardButton("/cancel")]], resize_keyboard=True
             ),
@@ -560,8 +448,7 @@ async def get_product_name(
                 [[KeyboardButton("/cancel")]], resize_keyboard=True
             ),
         )
-        return 6
-
+        return 5
 
 async def get_product_unit(
     update: Update, context: CallbackContext, user_data: dict
@@ -573,7 +460,7 @@ async def get_product_unit(
     product = user_data[chat_id]["products"][current_sheet][-1]
     logger.debug(
         f"get_product_unit: text='{text}', current_sheet={current_sheet}, product={product['name']}, "
-        f"quantity={product['quantity']}, variable={product['variable']}, chat_id={chat_id}"
+        f"quantity={product['quantity']}, chat_id={chat_id}"
     )
 
     if text == "подтвердить":
@@ -593,9 +480,6 @@ async def get_product_unit(
             return 5
         if product["category"] in ["Работы", "Доставка"]:
             user_data[chat_id]["has_non_material"] = True
-            logger.debug(
-                f"Подтверждён элемент '{product['name']}', has_non_material=True, chat_id={chat_id}"
-            )
         await update.message.reply_text(
             f"Элемент '{product['name']}' сохранён! Что дальше?"
         )
@@ -617,6 +501,7 @@ async def get_product_unit(
             await update.message.reply_text("Введи число.")
             return 6
         product["price_per_unit"] = float(text)
+        product["total_cost"] = product["price_per_unit"] * product["quantity"]
         user_data[chat_id]["awaiting_price"] = False
         if product["quantity"] <= 0:
             logger.error(
@@ -634,9 +519,6 @@ async def get_product_unit(
             return 5
         if product["category"] in ["Работы", "Доставка"]:
             user_data[chat_id]["has_non_material"] = True
-            logger.debug(
-                f"Подтверждён элемент '{product['name']}' с новой ценой, has_non_material=True, chat_id={chat_id}"
-            )
         await update.message.reply_text(
             f"Элемент '{product['name']}' сохранён! Что дальше?"
         )
@@ -658,7 +540,6 @@ async def get_product_unit(
         )
         return 6
 
-
 async def process_next_product_or_sheet(
     update: Update, context: CallbackContext, user_data: dict
 ) -> int:
@@ -673,14 +554,13 @@ async def process_next_product_or_sheet(
     if text == "Переход к следующему листу":
         if current_index + 1 < len(sheets):
             user_data[chat_id]["current_sheet"] = sheets[current_index + 1]
-            user_data[chat_id]["material_phase"] = True
+            user_data[chat_id]["material_phase"] = "material"
             await update.message.reply_text(
                 f"Переходим к листу '{user_data[chat_id]['current_sheet']}'."
             )
             await show_categories(update, user_data)
             return 4
     elif text == "Перейти к формированию сметы и созданию коммерческого предложения":
-        # Создаём Excel-смету
         excel_file = create_excel(chat_id, user_data)
         if not excel_file:
             logger.error(f"Не удалось создать Excel-файл для chat_id={chat_id}")
@@ -689,10 +569,8 @@ async def process_next_product_or_sheet(
             )
             return -1
 
-        # Создаём коммерческое предложение (DOCX)
         try:
             from utils.commercial_offer.creator import create_commercial_proposal_docx
-
             cp_file = create_commercial_proposal_docx(chat_id, user_data)
         except Exception as e:
             logger.error(f"Не удалось создать DOCX КП для chat_id={chat_id}: {str(e)}")
@@ -701,7 +579,6 @@ async def process_next_product_or_sheet(
             )
             return -1
 
-        # Отправляем оба документа
         await update.message.reply_document(
             document=open(excel_file, "rb"),
             caption="Вот твоя смета!",
@@ -714,7 +591,6 @@ async def process_next_product_or_sheet(
             ),
         )
 
-        # Удаляем временные файлы
         os.remove(excel_file)
         os.remove(cp_file)
         return -1
@@ -733,17 +609,17 @@ async def go_back(update: Update, context: CallbackContext, user_data: dict) -> 
     )
     if products:
         product = products[-1]
-        if product.get("variable") and not product.get("height"):
+        if product.get("variable") and product["parameters"]:
+            user_data[chat_id]["awaiting_param"] = product["parameters"][0]
             await update.message.reply_text(
-                f"Для '{product['name']}' укажи высоту (мм):",
+                product["parameters"][0]["prompt"],
                 reply_markup=ReplyKeyboardMarkup(
                     [[KeyboardButton("/cancel")]], resize_keyboard=True
                 ),
             )
-            user_data[chat_id]["awaiting_height"] = True
             return 5
         await update.message.reply_text(
-            f"Для '{product['name']}' укажи количество ({product['unit']}):",
+            f"Укажи количество для '{product['name']}' ({product['unit']}):",
             reply_markup=ReplyKeyboardMarkup(
                 [[KeyboardButton("/cancel")]], resize_keyboard=True
             ),

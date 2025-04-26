@@ -1,116 +1,321 @@
 {
-  "materials": [
+    "categories": [
       {
-          "id": 1,
-          "name": "Арматурная балка",
-          "category": "Материалы",
-          "unit": "кг",
-          "price": 50
+        "name": "Материалы",
+        "key": "materials",
+        "phase": "material"
       },
       {
-          "id": 2,
-          "name": "Доска",
-          "category": "Материалы",
-          "unit": "шт",
-          "variable": true,
-          "price": 100,
-          "parameters": ["длина", "ширина", "толщина"],
-          "calculation_function": "calculate_board_cost"
+        "name": "Изделия",
+        "key": "templates",
+        "phase": "material"
       },
       {
-          "id": 3,
-          "name": "Лист нержавеющей стали",
-          "category": "Материалы",
-          "unit": "шт",
-          "variable": true,
-          "parameters": ["длина", "ширина", "толщина"],
-          "calculation_function": "calculate_steel_sheet_cost",
-          "width_mm": 1000,
-          "length_mm": 2000,
-          "thickness_mm": 2,
-          "price": 1500
+        "name": "Работы",
+        "key": "works",
+        "phase": "non_material"
       },
       {
-          "id": 11,
-          "name": "Бетон",
-          "category": "Материалы",
-          "unit": "м³",
-          "price": 100
-      },
-      {
-          "id": 13,
-          "name": "Опалубка",
-          "category": "Материалы",
-          "unit": "м²",
-          "price": 50
+        "name": "Доставка",
+        "key": "other",
+        "phase": "non_material"
       }
-  ],
-  "works": [
+    ],
+    "materials": [
       {
-          "id": 4,
-          "name": "Резка листа",
-          "category": "Работы",
-          "unit": "шт",
-          "price": 500
+        "id": 1,
+        "name": "Арматурная балка",
+        "category": "Материалы",
+        "unit": "кг",
+        "base_price": 50
       },
       {
-          "id": 5,
-          "name": "Сварка листов нержавеющей стали",
-          "category": "Работы",
-          "unit": "шт",
-          "price": 1000
+        "id": 2,
+        "name": "Доска",
+        "category": "Материалы",
+        "unit": "шт",
+        "variable": true,
+        "parameters": [
+          {
+            "name": "длина",
+            "key": "length_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи длину (мм):"
+          },
+          {
+            "name": "ширина",
+            "key": "width_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи ширину (мм):"
+          },
+          {
+            "name": "толщина",
+            "key": "thickness_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи толщину (мм):"
+          }
+        ],
+        "calculation": {
+          "type": "volume",
+          "volume_formula": "length_mm * width_mm * thickness_mm / 1000000000",
+          "cost_per_m3": 20000
+        }
       },
       {
-          "id": 6,
-          "name": "Монтаж фундамента",
-          "category": "Работы",
-          "unit": "шт",
-          "price_formula": "sum_material_volume * 1000"
+        "id": 3,
+        "name": "Лист нержавеющей стали",
+        "category": "Материалы",
+        "unit": "шт",
+        "base_price": 2000
       },
       {
-          "id": 12,
-          "name": "Заливка бетона",
-          "category": "Работы",
-          "unit": "м³",
-          "price": 100
+        "id": 11,
+        "name": "Бетон",
+        "category": "Материалы",
+        "unit": "м³",
+        "base_price": 100
+      },
+      {
+        "id": 13,
+        "name": "Опалубка",
+        "category": "Материалы",
+        "unit": "м²",
+        "base_price": 50
+      },
+      {
+        "id": 14,
+        "name": "Металлическая труба",
+        "category": "Материалы",
+        "unit": "шт",
+        "variable": true,
+        "parameters": [
+          {
+            "name": "длина",
+            "key": "length_mm",
+            "type": "float",
+            "min": 1,
+            "max": 10000,
+            "prompt": "Укажи длину (мм):"
+          },
+          {
+            "name": "диаметр",
+            "key": "diameter_mm",
+            "type": "float",
+            "min": 10,
+            "max": 1000,
+            "prompt": "Укажи диаметр (мм):"
+          }
+        ],
+        "calculation": {
+          "type": "volume",
+          "volume_formula": "math.pi * (diameter_mm / 2) ** 2 * length_mm / 1000000000",
+          "cost_per_m3": 1000000
+        }
       }
-  ],
-  "other": [
+    ],
+    "works": [
       {
-          "id": 7,
-          "name": "Доставка материалов",
-          "category": "Доставка",
-          "unit": "шт",
-          "price_formula": "sum_material_volume * 5000"
-      }
-  ],
-  "templates": [
-      {
-          "id": 8,
-          "name": "Горка",
-          "category": "Изделия",
-          "unit": "шт",
-          "variable": true,
-          "parameters": ["ширина", "высота"],
-          "calculation_function": "calculate_slide_cost"
+        "id": 4,
+        "name": "Резка листа",
+        "category": "Работы",
+        "unit": "шт",
+        "base_price": 500
       },
       {
-          "id": 9,
-          "name": "Тоннель",
-          "category": "Изделия",
-          "unit": "шт",
-          "variable": true,
-          "parameters": ["радиус", "длина"],
-          "calculation_function": "calculate_tunnel_cost"
+        "id": 5,
+        "name": "Сварка листов нержавеющей стали",
+        "category": "Работы",
+        "unit": "шт",
+        "base_price": 1000
       },
       {
-          "id": 10,
-          "name": "Бетонная стена",
-          "category": "Изделия",
-          "unit": "шт",
-          "variable": true,
-          "parameters": ["длина", "ширина", "высота", "углубление"],
-          "calculation_function": "calculate_concrete_wall_cost"
+        "id": 6,
+        "name": "Монтаж фундамента",
+        "category": "Работы",
+        "unit": "шт",
+        "price_formula": "sum_material_volume * 1000"
+      },
+      {
+        "id": 12,
+        "name": "Заливка бетона",
+        "category": "Работы",
+        "unit": "м³",
+        "base_price": 100
       }
-  ]
-}
+    ],
+    "other": [
+      {
+        "id": 7,
+        "name": "Доставка материалов",
+        "category": "Доставка",
+        "unit": "шт",
+        "price_formula": "sum_material_volume * 5000"
+      }
+    ],
+    "templates": [
+      {
+        "id": 8,
+        "name": "Горка",
+        "category": "Изделия",
+        "unit": "шт",
+        "variable": true,
+        "parameters": [
+          {
+            "name": "ширина",
+            "key": "width_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи ширину (мм):"
+          },
+          {
+            "name": "высота",
+            "key": "height_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи высоту (мм):"
+          }
+        ],
+        "calculation": {
+          "type": "volume",
+          "volume_formula": "width_mm * height_mm * 300 / 1000000000",
+          "cost_per_m3_formula": "700000 - 50 * (height_mm - 900)",
+          "retail_multiplier": 1.087
+        }
+      },
+      {
+        "id": 9,
+        "name": "Тоннель",
+        "category": "Изделия",
+        "unit": "шт",
+        "variable": true,
+        "parameters": [
+          {
+            "name": "радиус",
+            "key": "radius_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи радиус (мм):"
+          },
+          {
+            "name": "длина",
+            "key": "length_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи длину (мм):"
+          }
+        ],
+        "calculation": {
+          "type": "complex",
+          "materials": [
+            {
+              "name": "Лист нержавеющей стали",
+              "quantity_formula": "total_sheets"
+            }
+          ],
+          "works": [
+            {
+              "name": "Резка листа",
+              "quantity_formula": "cuts_circ + cuts_len"
+            },
+            {
+              "name": "Сварка листов нержавеющей стали",
+              "quantity_formula": "welds_circ + welds_len"
+            }
+          ],
+          "formulas": {
+            "sheet_width_mm": "1200",
+            "sheet_length_mm": "2500",
+            "circumference": "2 * math.pi * radius_mm",
+            "sheets_needed_length": "ceil(length_mm / sheet_width_mm)",
+            "sheets_needed_circumference": "ceil(circumference / sheet_length_mm)",
+            "total_sheets": "sheets_needed_length * sheets_needed_circumference",
+            "total_length_from_sheets": "sheets_needed_length * sheet_width_mm",
+            "cuts_circ": "sheets_needed_length if sheets_needed_circumference * sheet_length_mm > circumference else 0",
+            "welds_circ": "sheets_needed_length * sheets_needed_circumference",
+            "cuts_len": "1 if total_length_from_sheets > length_mm else 0",
+            "welds_len": "sheets_needed_length - 1 if sheets_needed_length > 1 else 0"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "name": "Бетонная стена",
+        "category": "Изделия",
+        "unit": "шт",
+        "variable": true,
+        "parameters": [
+          {
+            "name": "длина",
+            "key": "length_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи длину (мм):"
+          },
+          {
+            "name": "ширина",
+            "key": "width_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи ширину (мм):"
+          },
+          {
+            "name": "высота",
+            "key": "height_mm",
+            "type": "float",
+            "min": 1,
+            "max": 100000,
+            "prompt": "Укажи высоту (мм):"
+          },
+          {
+            "name": "углубление",
+            "key": "deepening_mm",
+            "type": "float",
+            "min": 0,
+            "max": 100000,
+            "prompt": "Укажи углубление (мм):"
+          }
+        ],
+        "calculation": {
+          "type": "complex",
+          "materials": [
+            {
+              "name": "Бетон",
+              "quantity_formula": "(wall_volume_m3 + foundation_volume_m3)"
+            },
+            {
+              "name": "Арматурная балка",
+              "quantity_formula": "wall_volume_m3 * 100"
+            },
+            {
+              "name": "Опалубка",
+              "quantity_formula": "2 * (length_mm * wall_height_mm + width_mm * wall_height_mm) / 1000000"
+            }
+          ],
+          "works": [
+            {
+              "name": "Заливка бетона",
+              "quantity_formula": "wall_volume_m3 + foundation_volume_m3"
+            }
+          ],
+          "formulas": {
+            "total_deepening_mm": "150 + deepening_mm",
+            "wall_height_mm": "height_mm + total_deepening_mm",
+            "wall_volume_m3": "length_mm * width_mm * wall_height_mm / 1000000000",
+            "foundation_volume_m3": "length_mm * width_mm * 100 / 1000000000"
+          }
+        }
+      }
+    ]
+  }
