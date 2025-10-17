@@ -1,7 +1,6 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from utils.excel_creator import create_excel
-from utils.number_formatter import format_number
 from utils.materials_manager import materials_manager
 from calculations import calculate_product_cost
 import logging
